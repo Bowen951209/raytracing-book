@@ -4,6 +4,10 @@ import imgui.ImGui;
 import imgui.flag.ImGuiConfigFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
+import net.bowen.draw.Quad;
+import net.bowen.system.Deleteable;
+import net.bowen.system.Shader;
+import net.bowen.system.ShaderProgram;
 import org.lwjgl.Version;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
@@ -15,6 +19,8 @@ import java.nio.IntBuffer;
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL20.GL_FRAGMENT_SHADER;
+import static org.lwjgl.opengl.GL20.GL_VERTEX_SHADER;
 import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
@@ -25,6 +31,7 @@ public class Window {
     private final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
 
     private long windowHandle;
+    private Quad screenQuad;
 
     public Window(String title, GuiLayer guiLayer) {
         this.title = title;
@@ -40,6 +47,8 @@ public class Window {
     private void init() {
         initGLFW();
         initImGui();
+        initShaderPrograms();
+        initModels();
 
         // Make the window visible
         glfwShowWindow(windowHandle);
@@ -111,10 +120,23 @@ public class Window {
         imGuiGl3.init("#version 430 core");
     }
 
-    private void loop() {
-        // Set the clear color
-        glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
+    private void initShaderPrograms() {
+        ShaderProgram shaderProgram = new ShaderProgram();
+        shaderProgram.attachShader(new Shader("shaders/simpleShaders/vert.glsl", GL_VERTEX_SHADER));
+        shaderProgram.attachShader(new Shader("shaders/simpleShaders/frag.glsl", GL_FRAGMENT_SHADER));
+        shaderProgram.link();
+        shaderProgram.use();
+    }
 
+    private void initModels() {
+        screenQuad = new Quad();
+    }
+
+    private void drawModels() {
+        screenQuad.draw();
+    }
+
+    private void loop() {
         // Run the rendering loop until the user has attempted to close
         // the window or has pressed the ESCAPE key.
         while (!glfwWindowShouldClose(windowHandle)) {
@@ -123,6 +145,8 @@ public class Window {
             imGuiGlfw.newFrame();
             imGuiGl3.newFrame();
             ImGui.newFrame();
+
+            drawModels();
 
             guiLayer.draw();
 
@@ -146,15 +170,27 @@ public class Window {
     private void free() {
         // Free the window callbacks and destroy the window
         glfwFreeCallbacks(windowHandle);
+        System.out.println("GLFW callbacks freed.");
+
+        //noinspection DataFlowIssue
+        glfwSetErrorCallback(null).free();
+        System.out.println("GLFW error callback freed.");
+
         glfwDestroyWindow(windowHandle);
+        System.out.println("GLFW window(" + windowHandle + ") destroyed.");
 
         // Terminate GLFW and free the error callback
         glfwTerminate();
-        //noinspection DataFlowIssue
-        glfwSetErrorCallback(null).free();
+        System.out.println("GLFW terminated.");
 
+
+        // Free ImGUI
         imGuiGl3.shutdown();
         imGuiGlfw.shutdown();
         ImGui.destroyContext();
+        System.out.println("ImGUI freed.");
+
+        // Free the deletables
+        Deleteable.deleteCreatedInstances();
     }
 }
