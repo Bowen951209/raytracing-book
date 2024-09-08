@@ -40,8 +40,6 @@ public class Window {
     private void init() {
         initGLFW();
         initImGui();
-        imGuiGlfw.init(windowHandle, true);
-        imGuiGl3.init("#version 430 core");
 
         // Make the window visible
         glfwShowWindow(windowHandle);
@@ -109,6 +107,8 @@ public class Window {
     private void initImGui() {
         ImGui.createContext();
         ImGui.getIO().addConfigFlags(ImGuiConfigFlags.ViewportsEnable);
+        imGuiGlfw.init(windowHandle, true);
+        imGuiGl3.init("#version 430 core");
     }
 
     private void loop() {
