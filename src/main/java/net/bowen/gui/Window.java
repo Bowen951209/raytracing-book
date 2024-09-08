@@ -129,12 +129,11 @@ public class Window {
             ImGui.render();
             imGuiGl3.renderDrawData(ImGui.getDrawData());
 
-            if (ImGui.getIO().hasConfigFlags(ImGuiConfigFlags.ViewportsEnable)) {
-                final long backupWindowPtr = org.lwjgl.glfw.GLFW.glfwGetCurrentContext();
-                ImGui.updatePlatformWindows();
-                ImGui.renderPlatformWindowsDefault();
-                glfwMakeContextCurrent(backupWindowPtr);
-            }
+            // Multi Viewports things.
+            final long backupWindowPtr = org.lwjgl.glfw.GLFW.glfwGetCurrentContext();
+            ImGui.updatePlatformWindows();
+            ImGui.renderPlatformWindowsDefault();
+            glfwMakeContextCurrent(backupWindowPtr);
 
             glfwSwapBuffers(windowHandle); // swap the color buffers
 
