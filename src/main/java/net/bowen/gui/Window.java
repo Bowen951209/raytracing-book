@@ -8,6 +8,7 @@ import net.bowen.draw.Quad;
 import net.bowen.system.Deleteable;
 import net.bowen.system.Shader;
 import net.bowen.system.ShaderProgram;
+import net.bowen.system.Texture;
 import org.lwjgl.Version;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
@@ -19,8 +20,13 @@ import java.nio.IntBuffer;
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL20.GL_FRAGMENT_SHADER;
-import static org.lwjgl.opengl.GL20.GL_VERTEX_SHADER;
+import static org.lwjgl.opengl.GL15.GL_WRITE_ONLY;
+import static org.lwjgl.opengl.GL20.*;
+import static org.lwjgl.opengl.GL30.GL_RGBA32F;
+import static org.lwjgl.opengl.GL42.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT;
+import static org.lwjgl.opengl.GL42.glMemoryBarrier;
+import static org.lwjgl.opengl.GL43.GL_COMPUTE_SHADER;
+import static org.lwjgl.opengl.GL43.glDispatchCompute;
 import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
@@ -32,6 +38,8 @@ public class Window {
 
     private long windowHandle;
     private Quad screenQuad;
+    private Texture quadTexture;
+    private ShaderProgram quadProgram, computeProgram;
 
     public Window(String title, GuiLayer guiLayer) {
         this.title = title;
@@ -45,10 +53,15 @@ public class Window {
     }
 
     private void init() {
+        System.out.println("Initializing...");
+        long startTime = System.currentTimeMillis();
         initGLFW();
         initImGui();
         initShaderPrograms();
+        initTextures();
         initModels();
+        float initTime = (System.currentTimeMillis() - startTime) / 1000f;
+        System.out.println("Initialization completed in " + initTime + " sec.");
 
         // Make the window visible
         glfwShowWindow(windowHandle);
@@ -70,7 +83,7 @@ public class Window {
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE); // the window will be resizable
 
         // Create the window
-        windowHandle = glfwCreateWindow(300, 300, title, NULL, NULL);
+        windowHandle = glfwCreateWindow(500, 300, title, NULL, NULL);
         if (windowHandle == NULL)
             throw new RuntimeException("Failed to create the GLFW window");
 
@@ -121,18 +134,41 @@ public class Window {
     }
 
     private void initShaderPrograms() {
-        ShaderProgram shaderProgram = new ShaderProgram();
-        shaderProgram.attachShader(new Shader("shaders/simpleShaders/vert.glsl", GL_VERTEX_SHADER));
-        shaderProgram.attachShader(new Shader("shaders/simpleShaders/frag.glsl", GL_FRAGMENT_SHADER));
-        shaderProgram.link();
-        shaderProgram.use();
+        quadProgram = new ShaderProgram();
+        quadProgram.attachShader(new Shader("shaders/plainTextureShaders/vert.glsl", GL_VERTEX_SHADER));
+        quadProgram.attachShader(new Shader("shaders/plainTextureShaders/frag.glsl", GL_FRAGMENT_SHADER));
+        quadProgram.link();
+
+        computeProgram = new ShaderProgram();
+        computeProgram.attachShader(new Shader("shaders/raytrace/compute.glsl", GL_COMPUTE_SHADER));
+        computeProgram.link();
     }
 
     private void initModels() {
         screenQuad = new Quad();
     }
 
+    private void initTextures() {
+        quadTexture = new Texture(512, 512, GL_RGBA32F, GL_RGBA, GL_FLOAT, null);
+        quadTexture.bind();
+        quadTexture.bindAsImage(0, GL_WRITE_ONLY, GL_RGBA32F);
+        Texture.active(0);
+
+        int texLocation = quadProgram.getUniformLocation("tex_sampler");
+        glUniform1i(texLocation, 0); // 0 corresponds to GL_TEXTURE0
+    }
+
     private void drawModels() {
+        computeProgram.use();
+        int localSizeX = 16, localSizeY = 16;
+        int numGroupsX = (quadTexture.getHeight() + localSizeX - 1) / localSizeX;
+        int numGroupsY = (quadTexture.getWidth() + localSizeY - 1) / localSizeY;
+        glDispatchCompute(numGroupsX, numGroupsY, 1); // Dispatch the work groups
+
+        // Ensure all work has completed
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT); // Ensure the write to image is visible to subsequent operations
+
+        quadProgram.use();
         screenQuad.draw();
     }
 
