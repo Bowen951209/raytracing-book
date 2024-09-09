@@ -145,7 +145,7 @@ public class Window {
     }
 
     private void initModels() {
-        screenQuad = new Quad();
+        screenQuad = new Quad(-1.0f, 1.0f, 2.0f, 2.0f);
     }
 
     private void initTextures() {
