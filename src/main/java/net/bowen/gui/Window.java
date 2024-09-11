@@ -80,7 +80,7 @@ public class Window {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // the window will stay hidden after creation
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE); // the window will be resizable
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); // the window will not be resizable
 
         // Create the window
         windowHandle = glfwCreateWindow(500, 300, title, NULL, NULL);
@@ -149,7 +149,7 @@ public class Window {
     }
 
     private void initTextures() {
-        quadTexture = new Texture(512, 512, GL_RGBA32F, GL_RGBA, GL_FLOAT, null);
+        quadTexture = new Texture(500, 300, GL_RGBA32F, GL_RGBA, GL_FLOAT, null);
         quadTexture.bind();
         quadTexture.bindAsImage(0, GL_WRITE_ONLY, GL_RGBA32F);
         Texture.active(0);
