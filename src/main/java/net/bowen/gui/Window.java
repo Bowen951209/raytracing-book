@@ -161,8 +161,8 @@ public class Window {
     private void drawModels() {
         computeProgram.use();
         int localSizeX = 16, localSizeY = 16;
-        int numGroupsX = (quadTexture.getHeight() + localSizeX - 1) / localSizeX;
-        int numGroupsY = (quadTexture.getWidth() + localSizeY - 1) / localSizeY;
+        int numGroupsX = (quadTexture.getWidth() + localSizeX - 1) / localSizeX;
+        int numGroupsY = (quadTexture.getHeight() + localSizeY - 1) / localSizeY;
         glDispatchCompute(numGroupsX, numGroupsY, 1); // Dispatch the work groups
 
         // Ensure all work has completed
