@@ -11,10 +11,10 @@ public class Quad extends Drawable {
     public Quad(float x, float y, float w, float h) {
         super(new float[]{
                 // Positions   // Tex coords
-                x, y - h, 0.0f, -1.0f, -1.0f,    // Bottom-left
-                x + w, y - h, 0.0f, 1.0f, -1.0f, // Bottom-right
-                x + w, y, 0.0f, 1.0f, 1.0f,      // Top-right
-                x, y, 0.0f, 0.0f, 1.0f           // Top-left
+                x, y - h, 0.0f, 0f, 1.0f,    // Bottom-left
+                x + w, y - h, 0.0f, 1.0f, 1.0f, // Bottom-right
+                x + w, y, 0.0f, 1.0f, 0.0f,      // Top-right
+                x, y, 0.0f, 0.0f, 0.0f           // Top-left
         }, INDICES);
     }
 
