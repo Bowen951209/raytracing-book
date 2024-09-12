@@ -10,13 +10,18 @@ struct Ray {
     vec3 dir;   // direction
 };
 
-bool hit_sphere(vec3 center, float radius, Ray ray) {
+// Return the distance from the ray to the sphere.
+float hit_sphere(vec3 center, float radius, Ray ray) {
     vec3 oc = ray.o - center;
     float a = dot(ray.dir, ray.dir);
     float b = 2.0 * dot(oc, ray.dir);
     float c = dot(oc, oc) - radius * radius;
     float discriminant = b * b - 4 * a * c;
-    return discriminant >= 0;
+
+    if(discriminant < 0)
+        return -1.0;
+    else
+        return (-b - sqrt(discriminant)) / (2.0 * a);
 }
 
 vec2 get_norm_coord(vec2 pixel_coord) {
@@ -27,7 +32,7 @@ vec2 get_norm_coord(vec2 pixel_coord) {
     //, and x should have the same scale as y (translation should be scaled too).
     vec2 coord;
     coord.x = pixel_coord.x / img_size.y * 2.0 - aspect_ratio;
-    coord.y = pixel_coord.y / img_size.y * 2.0 - 1.0;
+    coord.y = -(pixel_coord.y / img_size.y * 2.0 - 1.0);
     return coord;
 }
 
@@ -39,14 +44,23 @@ Ray get_ray(vec2 normal_coord) {
     return ray;
 }
 
+vec3 get_color(Ray ray) {
+    vec3 sphere_o = vec3(0.0, 0.0, -1.0);
+    float sphere_radius = 0.5;
+    float t = hit_sphere(sphere_o, sphere_radius, ray);
+
+    if(t > 0.0) {
+        vec3 n = (ray.o + ray.dir * t - sphere_o) / sphere_radius;
+        return 0.5 * vec3(n.x + 1.0, n.y + 1.0, n.z + 1.0);
+    }
+
+    vec3 unit_direction = normalize(ray.dir);
+    float a = 0.5 * (unit_direction.y + 1.0);
+    return (1.0 - a) * vec3(1.0) + a * vec3(0.5, 0.7, 1.0);
+}
+
 void main() {
     ivec2 pixel_coord = ivec2(gl_GlobalInvocationID.xy);
     Ray ray = get_ray(get_norm_coord(vec2(pixel_coord)));
-
-    vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
-    if(hit_sphere(vec3(0.0, 0.0, -1.0), 0.5, ray)) {
-        color = vec4(1.0, 1.0, 1.0, 1.0);
-    }
-
-    imageStore(img_output, pixel_coord, color);
+    imageStore(img_output, pixel_coord, vec4(get_color(ray), 1.0));
 }
