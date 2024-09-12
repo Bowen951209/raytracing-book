@@ -14,14 +14,14 @@ struct Ray {
 float hit_sphere(vec3 center, float radius, Ray ray) {
     vec3 oc = ray.o - center;
     float a = dot(ray.dir, ray.dir);
-    float b = 2.0 * dot(oc, ray.dir);
+    float half_b = dot(oc, ray.dir);
     float c = dot(oc, oc) - radius * radius;
-    float discriminant = b * b - 4 * a * c;
+    float discriminant = half_b * half_b - a * c;
 
     if(discriminant < 0)
         return -1.0;
     else
-        return (-b - sqrt(discriminant)) / (2.0 * a);
+        return (-half_b - sqrt(discriminant)) / a;
 }
 
 vec2 get_norm_coord(vec2 pixel_coord) {
