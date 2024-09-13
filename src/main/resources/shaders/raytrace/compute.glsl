@@ -5,23 +5,69 @@ layout (rgba32f, binding = 0) uniform image2D img_output;
 
 layout (local_size_x = 16, local_size_y = 16) in;
 
+const float INFINITY = 3.402823E+38;
+
 struct Ray {
     vec3 o;     // origin
     vec3 dir;   // direction
 };
 
+struct HitRecord {
+    bool hit;
+    bool is_front_face;
+    vec3 p;
+    vec3 normal;
+    float t;
+};
+
+struct Sphere {
+    vec3 center;
+    float radius;
+};
+
+
+bool is_front_face(vec3 ray_dir, vec3 outward_normal) {
+    // The paseed in outward_normal should be unit vector.
+    return dot(ray_dir, outward_normal) < 0.0;
+}
+
+vec3 get_face_normal(vec3 outward_normal, bool is_front_face) {
+    return is_front_face ? outward_normal : -outward_normal;
+}
+
 // Return the distance from the ray to the sphere.
-float hit_sphere(vec3 center, float radius, Ray ray) {
-    vec3 oc = ray.o - center;
+HitRecord hit_sphere(Ray ray, Sphere sphere, float ray_tmin, float ray_tmax) {
+    vec3 oc = ray.o - sphere.center;
     float a = dot(ray.dir, ray.dir);
     float half_b = dot(oc, ray.dir);
-    float c = dot(oc, oc) - radius * radius;
+    float c = dot(oc, oc) - sphere.radius * sphere.radius;
     float discriminant = half_b * half_b - a * c;
 
-    if(discriminant < 0)
-        return -1.0;
-    else
-        return (-half_b - sqrt(discriminant)) / a;
+    HitRecord hit_record;
+    if(discriminant < 0.0) {
+        hit_record.hit = false;
+        return hit_record;
+    } else {
+        float sqrtd = sqrt(discriminant);
+
+        // Find the nearest root that lies in the acceptable range.
+        float root = (-half_b - sqrtd) / a;
+        if(root <= ray_tmin || ray_tmax <= root) {
+            root = (-half_b + sqrtd) / a;
+            if(root <= ray_tmin || ray_tmax <= root){
+                hit_record.hit = false;
+                return hit_record;
+            }
+        }
+
+        hit_record.hit = true;
+        hit_record.t = root;
+        hit_record.p = ray.o + ray.dir * hit_record.t;
+        vec3 outward_normal = (hit_record.p - sphere.center) / sphere.radius;
+        hit_record.is_front_face = is_front_face(ray.dir, outward_normal);
+        hit_record.normal = get_face_normal(outward_normal, hit_record.is_front_face);
+        return hit_record;
+    }
 }
 
 vec2 get_norm_coord(vec2 pixel_coord) {
@@ -45,12 +91,9 @@ Ray get_ray(vec2 normal_coord) {
 }
 
 vec3 get_color(Ray ray) {
-    vec3 sphere_o = vec3(0.0, 0.0, -1.0);
-    float sphere_radius = 0.5;
-    float t = hit_sphere(sphere_o, sphere_radius, ray);
-
-    if(t > 0.0) {
-        vec3 n = (ray.o + ray.dir * t - sphere_o) / sphere_radius;
+    HitRecord hit_record = hit_sphere(ray, Sphere(vec3(0.0, 0.0, -1.0), 0.5), 0.0, INFINITY);
+    if(hit_record.hit) {
+        vec3 n = hit_record.normal;
         return 0.5 * vec3(n.x + 1.0, n.y + 1.0, n.z + 1.0);
     }
 
