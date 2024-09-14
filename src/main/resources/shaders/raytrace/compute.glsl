@@ -6,6 +6,7 @@ layout (rgba32f, binding = 0) uniform image2D img_output;
 layout (local_size_x = 16, local_size_y = 16) in;
 
 const float INFINITY = 3.402823E+38;
+float closet_so_far = 0.0;
 
 struct Ray {
     vec3 o;     // origin
@@ -25,6 +26,14 @@ struct Sphere {
     float radius;
 };
 
+struct Interval {
+    float min;
+    float max;
+};
+
+bool interval_surrounds(Interval interval, float x) {
+    return interval.min < x && x < interval. max;
+}
 
 bool is_front_face(vec3 ray_dir, vec3 outward_normal) {
     // The paseed in outward_normal should be unit vector.
@@ -36,7 +45,7 @@ vec3 get_face_normal(vec3 outward_normal, bool is_front_face) {
 }
 
 // Return the distance from the ray to the sphere.
-HitRecord hit_sphere(Ray ray, Sphere sphere, float ray_tmin, float ray_tmax) {
+HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t) {
     vec3 oc = ray.o - sphere.center;
     float a = dot(ray.dir, ray.dir);
     float half_b = dot(oc, ray.dir);
@@ -52,9 +61,9 @@ HitRecord hit_sphere(Ray ray, Sphere sphere, float ray_tmin, float ray_tmax) {
 
         // Find the nearest root that lies in the acceptable range.
         float root = (-half_b - sqrtd) / a;
-        if(root <= ray_tmin || ray_tmax <= root) {
+        if(!interval_surrounds(ray_t, root)) {
             root = (-half_b + sqrtd) / a;
-            if(root <= ray_tmin || ray_tmax <= root){
+            if(!interval_surrounds(ray_t, root)){
                 hit_record.hit = false;
                 return hit_record;
             }
@@ -62,6 +71,7 @@ HitRecord hit_sphere(Ray ray, Sphere sphere, float ray_tmin, float ray_tmax) {
 
         hit_record.hit = true;
         hit_record.t = root;
+        closet_so_far = hit_record.t;
         hit_record.p = ray.o + ray.dir * hit_record.t;
         vec3 outward_normal = (hit_record.p - sphere.center) / sphere.radius;
         hit_record.is_front_face = is_front_face(ray.dir, outward_normal);
@@ -91,10 +101,10 @@ Ray get_ray(vec2 normal_coord) {
 }
 
 vec3 get_color(Ray ray) {
-    HitRecord hit_record = hit_sphere(ray, Sphere(vec3(0.0, 0.0, -1.0), 0.5), 0.0, INFINITY);
+    HitRecord hit_record = hit_sphere(ray, Sphere(vec3(0.0, 0.0, -1.0), 0.5), Interval(0.0, INFINITY));
     if(hit_record.hit) {
         vec3 n = hit_record.normal;
-        return 0.5 * vec3(n.x + 1.0, n.y + 1.0, n.z + 1.0);
+        return 0.5 * (n + vec3(1.0));
     }
 
     vec3 unit_direction = normalize(ray.dir);
