@@ -6,7 +6,13 @@ layout (rgba32f, binding = 0) uniform image2D img_output;
 layout (local_size_x = 16, local_size_y = 16) in;
 
 const float INFINITY = 3.402823E+38;
-float closet_so_far = 0.0;
+const int SAMPLE_PER_PIXEL = 100;
+
+vec2 image_size;
+vec2 pixel_coord;
+vec2 pixel_delta_u;
+vec2 pixel_delta_v;
+float closest_so_far = 0.0;
 
 struct Ray {
     vec3 o;     // origin
@@ -44,6 +50,11 @@ vec3 get_face_normal(vec3 outward_normal, bool is_front_face) {
     return is_front_face ? outward_normal : -outward_normal;
 }
 
+// Return a random value in section [0, 1).
+float rand(vec2 co) {
+    return fract(sin(dot(co.xy, vec2(12.9898,78.233))) * 43758.5453123);
+}
+
 // Return the distance from the ray to the sphere.
 HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t) {
     vec3 oc = ray.o - sphere.center;
@@ -71,7 +82,7 @@ HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t) {
 
         hit_record.hit = true;
         hit_record.t = root;
-        closet_so_far = hit_record.t;
+        closest_so_far = hit_record.t;
         hit_record.p = ray.o + ray.dir * hit_record.t;
         vec3 outward_normal = (hit_record.p - sphere.center) / sphere.radius;
         hit_record.is_front_face = is_front_face(ray.dir, outward_normal);
@@ -80,15 +91,22 @@ HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t) {
     }
 }
 
-vec2 get_norm_coord(vec2 pixel_coord) {
-    vec2 img_size = vec2(imageSize(img_output));
-    float aspect_ratio = img_size.x / img_size.y;
+vec2 pixel_sample_square(int i) {
+    float px = -0.5 + rand(pixel_coord + vec2(i, 0));
+    float py = -0.5 + rand(-pixel_coord + vec2(0, i));
+    return px * pixel_delta_u + py * pixel_delta_v;
+}
+
+vec2 get_norm_coord(int i) {
+    float aspect_ratio = image_size.x / image_size.y;
+
+    vec2 pixel_coord_rand = pixel_coord + pixel_sample_square(i);
 
     // Get the normalized coordinate. For the case of aspect_ratio >= 1, y should be transformed into range [-1, 1]
     //, and x should have the same scale as y (translation should be scaled too).
     vec2 coord;
-    coord.x = pixel_coord.x / img_size.y * 2.0 - aspect_ratio;
-    coord.y = -(pixel_coord.y / img_size.y * 2.0 - 1.0);
+    coord.x = pixel_coord_rand.x / image_size.y * 2.0 - aspect_ratio;
+    coord.y = -(pixel_coord_rand.y / image_size.y * 2.0 - 1.0);
     return coord;
 }
 
@@ -113,7 +131,16 @@ vec3 get_color(Ray ray) {
 }
 
 void main() {
-    ivec2 pixel_coord = ivec2(gl_GlobalInvocationID.xy);
-    Ray ray = get_ray(get_norm_coord(vec2(pixel_coord)));
-    imageStore(img_output, pixel_coord, vec4(get_color(ray), 1.0));
+    pixel_coord = gl_GlobalInvocationID.xy;
+    image_size = vec2(imageSize(img_output));
+    pixel_delta_u = vec2(pixel_coord.x, 0.0) / image_size.x;
+    pixel_delta_v = vec2(0.0, pixel_coord.y) / image_size.y;
+
+    vec3 color;
+    for (int i = 0; i < SAMPLE_PER_PIXEL; i++) {
+       Ray ray = get_ray(get_norm_coord(i));
+       color += get_color(ray) / SAMPLE_PER_PIXEL;
+    }
+
+    imageStore(img_output, ivec2(pixel_coord), vec4(color, 1.0));
 }
