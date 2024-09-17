@@ -167,13 +167,13 @@ vec3 get_color(Ray ray) {
     for (int i = 0; i < u_max_depth; i++) {
         HitRecord hit_record;
         for (int j = 0; j < 2; j++) {
-            hit_record = hit_sphere(ray, spheres[j], Interval(0.0, INFINITY));
+            hit_record = hit_sphere(ray, spheres[j], Interval(0.001, INFINITY));
             if (hit_record.hit) break;
         }
 
         if (hit_record.hit) {
             ray.dir = rand_on_hemisphere(hit_record.normal);
-            ray.o = hit_record.p + 0.001 * ray.dir; // step a little bit so it won't raytrace to the same hit obj again.
+            ray.o = hit_record.p;
             color_scale *= 0.5;
             continue;
         }
