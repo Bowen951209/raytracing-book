@@ -66,6 +66,9 @@ public class Window {
         // Upload the multi-sample count uniform
         guiRenderer.multiSampleSliderSlide();
 
+        // Upload the max depth uniform
+        guiRenderer.maxBounceSliderSlide();
+
         // Raytrace and render the first image(using the gui btn, so we can see the elapsed time)
         System.out.println("Rendering first image...");
         guiRenderer.renderBtnClicked();

@@ -7,7 +7,8 @@ layout (local_size_x = 16, local_size_y = 16) in;
 
 const float INFINITY = 3.402823E+38;
 
-uniform int u_sample_per_pixel;
+uniform int u_sample_per_pixel; // Count random samples for each pixel.
+uniform int u_max_depth;        // Maximum number of ray bounces into scene.
 
 vec2 image_size;
 vec2 pixel_coord;
@@ -160,14 +161,16 @@ vec3 get_color(Ray ray) {
 
     Sphere spheres[2] = Sphere[2](
         Sphere(vec3(0.0, 0.0, -1.0), 0.5),
-        Sphere(vec3(0.0,-100.5,-1.0), 100.0)
+        Sphere(vec3(0.0, -100.5, -1.0), 100.0)
     );
-    while(true) {
+
+    for (int i = 0; i < u_max_depth; i++) {
         HitRecord hit_record;
-        for (int i = 0; i < 2; i++) {
-            hit_record = hit_sphere(ray, spheres[i], Interval(0.0, INFINITY));
-            if(hit_record.hit) break;
+        for (int j = 0; j < 2; j++) {
+            hit_record = hit_sphere(ray, spheres[j], Interval(0.0, INFINITY));
+            if (hit_record.hit) break;
         }
+
         if (hit_record.hit) {
             ray.dir = rand_on_hemisphere(hit_record.normal);
             ray.o = hit_record.p + 0.001 * ray.dir; // step a little bit so it won't raytrace to the same hit obj again.

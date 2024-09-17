@@ -7,6 +7,7 @@ public class GuiRenderer implements GuiLayer {
     private final Window window;
     private final QueryTimer queryTimer = new QueryTimer();
     private final int[] samplePerPixel = new int[] {100};
+    private final int[] maxDepth = new int[] {50};
 
     public GuiRenderer(Window window) {
         this.window = window;
@@ -32,6 +33,11 @@ public class GuiRenderer implements GuiLayer {
         if (ImGui.sliderInt("Sample per pixel", samplePerPixel, 1, 100)) {
             multiSampleSliderSlide();
         }
+
+        // Slider for max bounces of ray.
+        if (ImGui.sliderInt("Max Depth", maxDepth, 1, 50)) {
+            maxBounceSliderSlide();
+        }
     }
 
     public void renderBtnClicked() {
@@ -43,5 +49,10 @@ public class GuiRenderer implements GuiLayer {
     public void multiSampleSliderSlide() {
         // Send the count to the shader.
         window.computeProgram.setUniform1iv("u_sample_per_pixel", samplePerPixel);
+    }
+
+    public void maxBounceSliderSlide() {
+        // Send the count to the shader.
+        window.computeProgram.setUniform1iv("u_max_depth", maxDepth);
     }
 }
