@@ -51,17 +51,17 @@ public class ShaderProgram extends Deleteable{
     }
 
     public int getUniformLocation(String name) {
-        return glGetUniformLocation(programId, name);
+        Integer location;
+        if ((location = uniformLocations.get(name)) == null) {
+            use();
+            location = glGetUniformLocation(programId, name);
+            uniformLocations.put(name, location);
+        }
+        return location;
     }
 
     public void setUniform1iv(String name, int[] value) {
-        use();
-        Integer location;
-        if ((location = uniformLocations.get(name)) == null) {
-            location = getUniformLocation(name);
-            uniformLocations.put(name, location);
-        }
-        glUniform1iv(location, value);
+        glUniform1iv(getUniformLocation(name), value);
     }
 
     private void detachAndDeleteShaders() {
