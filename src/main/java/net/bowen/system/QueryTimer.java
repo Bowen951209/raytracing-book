@@ -48,5 +48,6 @@ public class QueryTimer extends Deleteable{
     @Override
     protected void delete() {
         glDeleteQueries(queryID);
+        System.out.println("Query object(" + queryID + ") deleted.");
     }
 }
