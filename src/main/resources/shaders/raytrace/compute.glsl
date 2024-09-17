@@ -6,7 +6,8 @@ layout (rgba32f, binding = 0) uniform image2D img_output;
 layout (local_size_x = 16, local_size_y = 16) in;
 
 const float INFINITY = 3.402823E+38;
-const int SAMPLE_PER_PIXEL = 100;
+
+uniform int u_sample_per_pixel;
 
 vec2 image_size;
 vec2 pixel_coord;
@@ -190,9 +191,9 @@ void main() {
     pixel_delta_v = vec2(0.0, pixel_coord.y) / image_size.y;
 
     vec3 color;
-    for (int i = 0; i < SAMPLE_PER_PIXEL; i++) {
+    for (int i = 0; i < u_sample_per_pixel; i++) {
         Ray ray = get_ray(get_norm_coord(i));
-        color += get_color(ray) / SAMPLE_PER_PIXEL;
+        color += get_color(ray) / u_sample_per_pixel;
     }
 
     imageStore(img_output, ivec2(pixel_coord), vec4(color, 1.0));

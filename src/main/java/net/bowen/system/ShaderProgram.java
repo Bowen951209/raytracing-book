@@ -1,6 +1,8 @@
 package net.bowen.system;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import static org.lwjgl.opengl.GL20.*;
@@ -9,6 +11,7 @@ public class ShaderProgram extends Deleteable{
 
     private final int programId;
     private final Set<Shader> attachedShaders = new HashSet<>();
+    private final Map<String, Integer> uniformLocations = new HashMap<>();
 
     public ShaderProgram() {
         super(true);
@@ -51,9 +54,14 @@ public class ShaderProgram extends Deleteable{
         return glGetUniformLocation(programId, name);
     }
 
-    public void setUniform1f(String name, float value) {
-        int location = getUniformLocation(name);
-        glUniform1f(location, value);
+    public void setUniform1iv(String name, int[] value) {
+        use();
+        Integer location;
+        if ((location = uniformLocations.get(name)) == null) {
+            location = getUniformLocation(name);
+            uniformLocations.put(name, location);
+        }
+        glUniform1iv(location, value);
     }
 
     private void detachAndDeleteShaders() {

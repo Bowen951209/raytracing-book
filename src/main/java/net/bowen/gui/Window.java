@@ -38,8 +38,9 @@ public class Window {
     private long windowHandle;
     private Quad screenQuad;
     private Texture quadTexture;
-    private ShaderProgram quadProgram, computeProgram;
     private GuiRenderer guiRenderer;
+
+    ShaderProgram quadProgram, computeProgram;
 
     public Window(String title) {
         this.title = title;
@@ -61,6 +62,9 @@ public class Window {
         initModels();
         float initTime = (System.currentTimeMillis() - startTime) / 1000f;
         System.out.println("Initialization completed in " + initTime + " sec.");
+
+        // Upload the multi-sample count uniform
+        guiRenderer.multiSampleSliderSlide();
 
         // Raytrace and render the first image(using the gui btn, so we can see the elapsed time)
         System.out.println("Rendering first image...");
