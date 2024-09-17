@@ -32,7 +32,7 @@ public abstract class RaytraceModel {
         // TODO: Things are only for spheres here. Adapt to other models in the future.
         // - 3 floats for center (vec3)
         // - 1 float for radius (float)
-        FloatBuffer buffer = MemoryUtil.memAllocFloat(MODELS.size() * 5);
+        FloatBuffer buffer = MemoryUtil.memAllocFloat(MODELS.size() * 4);
         for (RaytraceModel model : MODELS) {
             // Center position (vec3)
             buffer.put(model.data[0]).put(model.data[1]).put(model.data[2]); // x, y, z
