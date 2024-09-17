@@ -4,7 +4,9 @@ import imgui.ImGui;
 import imgui.flag.ImGuiConfigFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
+import net.bowen.draw.RaytraceModel;
 import net.bowen.draw.Quad;
+import net.bowen.draw.Sphere;
 import net.bowen.system.Deleteable;
 import net.bowen.system.Shader;
 import net.bowen.system.ShaderProgram;
@@ -158,7 +160,14 @@ public class Window {
     }
 
     private void initModels() {
+        // Drawable models:
         screenQuad = new Quad(-1.0f, 1.0f, 2.0f, 2.0f);
+
+        // Raytrace models:
+        RaytraceModel.initSSBO();
+        RaytraceModel.addModel(new Sphere(0.0f, 0.0f, -1.0f, 0.5f));
+        RaytraceModel.addModel(new Sphere(0.0f, -100.5f, -1.0f, 100.0f));
+        RaytraceModel.putModelsToProgram();
     }
 
     private void initTextures() {

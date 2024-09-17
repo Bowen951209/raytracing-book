@@ -20,6 +20,10 @@ public class BufferObject extends Deleteable {
         System.out.println("Buffer object(" + bufferId + ") deleted.");
     }
 
+    public int getId() {
+        return bufferId;
+    }
+
     public void bind(int target) {
         glBindBuffer(target, bufferId);
     }

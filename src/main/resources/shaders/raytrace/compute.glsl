@@ -40,6 +40,10 @@ struct Interval {
     float max;
 };
 
+layout(std430, binding = 0) buffer DataBuffer {
+    Sphere spheres[];
+};
+
 bool interval_surrounds(Interval interval, float x) {
     return interval.min < x && x < interval.max;
 }
@@ -164,11 +168,6 @@ Ray get_ray(vec2 normal_coord) {
 vec3 get_color(Ray ray) {
     vec3 color = vec3(0.0);
     float color_scale = 1.0;
-
-    Sphere spheres[2] = Sphere[2](
-        Sphere(vec3(0.0, 0.0, -1.0), 0.5),
-        Sphere(vec3(0.0, -100.5, -1.0), 100.0)
-    );
 
     for (int i = 0; i < u_max_depth; i++) {
         HitRecord hit_record;
