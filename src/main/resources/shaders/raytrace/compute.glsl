@@ -12,6 +12,7 @@ vec2 image_size;
 vec2 pixel_coord;
 vec2 pixel_delta_u;
 vec2 pixel_delta_v;
+float rand_factor = 0.0;
 float closest_so_far = 0.0;
 
 struct Ray {
@@ -38,7 +39,7 @@ struct Interval {
 };
 
 bool interval_surrounds(Interval interval, float x) {
-    return interval.min < x && x < interval. max;
+    return interval.min < x && x < interval.max;
 }
 
 bool is_front_face(vec3 ray_dir, vec3 outward_normal) {
@@ -51,8 +52,42 @@ vec3 get_face_normal(vec3 outward_normal, bool is_front_face) {
 }
 
 // Return a random value in section [0, 1).
-float rand(vec2 co) {
-    return fract(sin(dot(co.xy, vec2(12.9898,78.233))) * 43758.5453123);
+float rand() {
+    rand_factor += 0.001;
+    vec2 co = pixel_coord;
+    co += rand_factor;
+    return fract(sin(dot(co.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+}
+
+// Return a random value in section [minVal, maxVal).
+float rand(float minVal, float maxVal) {
+    return minVal + rand() * (maxVal - minVal);
+}
+
+vec3 rand_vec3(float min_val, float max_val) {
+    float rand1 = rand(min_val, max_val);
+    float rand2 = rand(min_val, max_val);
+    float rand3 = rand(min_val, max_val);
+    return vec3(rand1, rand2, rand3);
+}
+
+vec3 rand_vec_in_unit_sphere() {
+    while (true) {
+        vec3 p = rand_vec3(-1.0, 1.0);
+        if (dot(p, p) < 1) return p;
+    }
+}
+
+vec3 rand_unit_vec() {
+    return normalize(rand_vec_in_unit_sphere());
+}
+
+vec3 rand_on_hemisphere(vec3 normal) {
+    vec3 on_unit_sphere = rand_unit_vec();
+    if(dot(on_unit_sphere, normal) > 0.0) { // In the same hemisphere as the normal
+        return on_unit_sphere;
+    }
+    return -on_unit_sphere;
 }
 
 // Return the distance from the ray to the sphere.
@@ -64,7 +99,7 @@ HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t) {
     float discriminant = half_b * half_b - a * c;
 
     HitRecord hit_record;
-    if(discriminant < 0.0) {
+    if (discriminant < 0.0) {
         hit_record.hit = false;
         return hit_record;
     } else {
@@ -72,9 +107,9 @@ HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t) {
 
         // Find the nearest root that lies in the acceptable range.
         float root = (-half_b - sqrtd) / a;
-        if(!interval_surrounds(ray_t, root)) {
+        if (!interval_surrounds(ray_t, root)) {
             root = (-half_b + sqrtd) / a;
-            if(!interval_surrounds(ray_t, root)){
+            if (!interval_surrounds(ray_t, root)) {
                 hit_record.hit = false;
                 return hit_record;
             }
@@ -92,8 +127,8 @@ HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t) {
 }
 
 vec2 pixel_sample_square(int i) {
-    float px = -0.5 + rand(pixel_coord + vec2(i, 0));
-    float py = -0.5 + rand(-pixel_coord + vec2(0, i));
+    float px = -0.5 + rand();
+    float py = -0.5 + rand();
     return px * pixel_delta_u + py * pixel_delta_v;
 }
 
@@ -119,15 +154,33 @@ Ray get_ray(vec2 normal_coord) {
 }
 
 vec3 get_color(Ray ray) {
-    HitRecord hit_record = hit_sphere(ray, Sphere(vec3(0.0, 0.0, -1.0), 0.5), Interval(0.0, INFINITY));
-    if(hit_record.hit) {
-        vec3 n = hit_record.normal;
-        return 0.5 * (n + vec3(1.0));
+    vec3 color = vec3(0.0);
+    float color_scale = 1.0;
+
+    Sphere spheres[2] = Sphere[2](
+        Sphere(vec3(0.0, 0.0, -1.0), 0.5),
+        Sphere(vec3(0.0,-100.5,-1.0), 100.0)
+    );
+    while(true) {
+        HitRecord hit_record;
+        for (int i = 0; i < 2; i++) {
+            hit_record = hit_sphere(ray, spheres[i], Interval(0.0, INFINITY));
+            if(hit_record.hit) break;
+        }
+        if (hit_record.hit) {
+            ray.dir = rand_on_hemisphere(hit_record.normal);
+            ray.o = hit_record.p + 0.001 * ray.dir; // step a little bit so it won't raytrace to the same hit obj again.
+            color_scale *= 0.5;
+            continue;
+        }
+
+        vec3 unit_direction = normalize(ray.dir);
+        float a = 0.5 * (unit_direction.y + 1.0);
+        color += ((1.0 - a) * vec3(1.0) + a * vec3(0.5, 0.7, 1.0)) * color_scale;
+        break;
     }
 
-    vec3 unit_direction = normalize(ray.dir);
-    float a = 0.5 * (unit_direction.y + 1.0);
-    return (1.0 - a) * vec3(1.0) + a * vec3(0.5, 0.7, 1.0);
+    return color;
 }
 
 void main() {
@@ -138,8 +191,8 @@ void main() {
 
     vec3 color;
     for (int i = 0; i < SAMPLE_PER_PIXEL; i++) {
-       Ray ray = get_ray(get_norm_coord(i));
-       color += get_color(ray) / SAMPLE_PER_PIXEL;
+        Ray ray = get_ray(get_norm_coord(i));
+        color += get_color(ray) / SAMPLE_PER_PIXEL;
     }
 
     imageStore(img_output, ivec2(pixel_coord), vec4(color, 1.0));
