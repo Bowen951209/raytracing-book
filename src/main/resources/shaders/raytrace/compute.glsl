@@ -92,6 +92,12 @@ vec3 rand_on_hemisphere(vec3 normal) {
     return -on_unit_sphere;
 }
 
+// Transform the passed in linear-space color to gamma space using gamma value of 2.
+vec3 linear_to_gamma(vec3 linear_component) {
+    // Gamma value of 2 will make the calculation a square root:
+    return sqrt(linear_component);
+}
+
 // Return the distance from the ray to the sphere.
 HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t) {
     vec3 oc = ray.o - sphere.center;
@@ -184,7 +190,7 @@ vec3 get_color(Ray ray) {
         break;
     }
 
-    return color;
+    return linear_to_gamma(color);
 }
 
 void main() {
