@@ -32,7 +32,6 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 
 public class Window {
     private final String title;
-    private final GuiLayer guiLayer;
     private final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
 
@@ -40,10 +39,10 @@ public class Window {
     private Quad screenQuad;
     private Texture quadTexture;
     private ShaderProgram quadProgram, computeProgram;
+    private GuiRenderer guiRenderer;
 
-    public Window(String title, GuiLayer guiLayer) {
+    public Window(String title) {
         this.title = title;
-        this.guiLayer = guiLayer;
 
         System.out.println("LWJGL version: " + Version.getVersion());
 
@@ -62,6 +61,11 @@ public class Window {
         initModels();
         float initTime = (System.currentTimeMillis() - startTime) / 1000f;
         System.out.println("Initialization completed in " + initTime + " sec.");
+
+        // Raytrace and render the first image(using the gui btn, so we can see the elapsed time)
+        System.out.println("Rendering first image...");
+        guiRenderer.renderBtnClicked();
+        System.out.println("First image rendered complete.");
 
         // Make the window visible
         glfwShowWindow(windowHandle);
@@ -131,6 +135,8 @@ public class Window {
         ImGui.getIO().addConfigFlags(ImGuiConfigFlags.ViewportsEnable);
         imGuiGlfw.init(windowHandle, true);
         imGuiGl3.init("#version 430 core");
+
+        guiRenderer = new GuiRenderer(this);
     }
 
     private void initShaderPrograms() {
@@ -158,7 +164,7 @@ public class Window {
         glUniform1i(texLocation, 0); // 0 corresponds to GL_TEXTURE0
     }
 
-    private void drawModels() {
+    public void raytrace() {
         computeProgram.use();
         int localSizeX = 16, localSizeY = 16;
         int numGroupsX = (quadTexture.getWidth() + localSizeX - 1) / localSizeX;
@@ -167,7 +173,12 @@ public class Window {
 
         // Ensure all work has completed
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT); // Ensure the write to image is visible to subsequent operations
+    }
 
+    /**
+     * Draw the raytracing result to the frame buffer.
+     */
+    private void drawResult() {
         quadProgram.use();
         screenQuad.draw();
     }
@@ -182,15 +193,14 @@ public class Window {
             imGuiGl3.newFrame();
             ImGui.newFrame();
 
-            drawModels();
-
-            guiLayer.draw();
+            drawResult();
+            guiRenderer.draw();
 
             ImGui.render();
             imGuiGl3.renderDrawData(ImGui.getDrawData());
 
             // Multi Viewports things.
-            final long backupWindowPtr = org.lwjgl.glfw.GLFW.glfwGetCurrentContext();
+            final long backupWindowPtr = glfwGetCurrentContext();
             ImGui.updatePlatformWindows();
             ImGui.renderPlatformWindowsDefault();
             glfwMakeContextCurrent(backupWindowPtr);
