@@ -2,10 +2,10 @@
 
 layout (rgba32f, binding = 0) uniform image2D img_output;
 
-
 layout (local_size_x = 16, local_size_y = 16) in;
 
 const float INFINITY = 3.402823E+38;
+const float MATERIAL_LAMBERTIAN = 0.0;
 
 uniform int u_sample_per_pixel; // Count random.glsl samples for each pixel.
 uniform int u_max_depth;        // Maximum number of ray bounces into scene.
@@ -21,6 +21,7 @@ float closest_so_far = 0.0;
 #include <utils/interval.glsl>
 #include <utils/random.glsl>
 #include <utils/hitting.glsl>
+#include <utils/lambertian.glsl>
 
 struct Ray {
     vec3 o;     // origin
@@ -38,6 +39,8 @@ struct HitRecord {
 struct Sphere {
     vec3 center;
     float radius;
+    vec3 albedo;
+    float material;
 };
 
 struct Interval {
@@ -62,11 +65,21 @@ vec3 rand_unit_vec();
 vec3 rand_on_hemisphere(vec3 normal);
 HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t);
 vec2 pixel_sample_square(int i);
+vec3 lambertian_scatter(vec3 normal);
 
 // Transform the passed in linear-space color to gamma space using gamma value of 2.
 vec3 linear_to_gamma(vec3 linear_component) {
     // Gamma value of 2 will make the calculation a square root:
     return sqrt(linear_component);
+}
+
+bool near_zero(vec3 v) {
+    float s = 1e-8;
+    return v.x < s && v.y < s && v.z < s;
+}
+
+vec3 scatter(vec3 normal, float material) {
+    if(material == MATERIAL_LAMBERTIAN) return lambertian_scatter(normal);
 }
 
 vec2 get_norm_coord(int i) {
@@ -92,19 +105,29 @@ Ray get_ray(vec2 normal_coord) {
 
 vec3 get_color(Ray ray) {
     vec3 color = vec3(0.0);
-    float color_scale = 1.0;
+    vec3 color_scale = vec3(1.0);
 
     for (int i = 0; i < u_max_depth; i++) {
         HitRecord hit_record;
+        float material;
+        vec3 albedo;
         for (int j = 0; j < 2; j++) {
             hit_record = hit_sphere(ray, spheres[j], Interval(0.001, INFINITY));
-            if (hit_record.hit) break;
+            if (hit_record.hit) {
+                material = spheres[j].material;
+                albedo = spheres[j].albedo;
+                break;
+            }
         }
 
         if (hit_record.hit) {
-            ray.dir = hit_record.normal + rand_unit_vec();
+            ray.dir = scatter(hit_record.normal, material);
+            // Catch degenerate scatter direction.
+            if(near_zero(ray.dir)) {
+                ray.dir = hit_record.normal;
+            }
             ray.o = hit_record.p;
-            color_scale *= 0.5;
+            color_scale *= albedo;
             continue;
         }
 

@@ -14,6 +14,8 @@ struct HitRecord {
 struct Sphere {
     vec3 center;
     float radius;
+    vec3 albedo;
+    float material;
 };
 
 struct Interval {
