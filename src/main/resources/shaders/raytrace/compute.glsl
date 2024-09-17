@@ -172,7 +172,7 @@ vec3 get_color(Ray ray) {
         }
 
         if (hit_record.hit) {
-            ray.dir = rand_on_hemisphere(hit_record.normal);
+            ray.dir = hit_record.normal + rand_unit_vec();
             ray.o = hit_record.p;
             color_scale *= 0.5;
             continue;
