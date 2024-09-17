@@ -150,7 +150,7 @@ vec2 get_norm_coord(int i) {
 Ray get_ray(vec2 normal_coord) {
     Ray ray;
     ray.o = vec3(0.0);
-    ray.dir = vec3(normal_coord, -1.0);
+    ray.dir = normalize(vec3(normal_coord, -1.0));
 
     return ray;
 }
