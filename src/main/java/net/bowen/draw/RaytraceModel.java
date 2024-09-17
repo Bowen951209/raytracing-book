@@ -37,7 +37,7 @@ public abstract class RaytraceModel {
             // Center position (vec3)
             buffer.put(model.data[0]).put(model.data[1]).put(model.data[2]); // x, y, z
 
-            // Particle mass (float)
+            // Radius (float)
             buffer.put(model.data[3]);
         }
         buffer.flip();
