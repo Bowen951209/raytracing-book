@@ -8,11 +8,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL43.GL_COMPUTE_SHADER;
 
 public class Shader extends Deleteable {
+    private static final Pattern INCLUDE_PATTERN = Pattern.compile("#include\\s+<(.+?)>");
 
     private final int shaderId;
 
@@ -20,13 +23,7 @@ public class Shader extends Deleteable {
     public Shader(String resourcePath, int type) {
         super(false);
         // Read the shader source from the file
-        String source;
-        try {
-            Path path = Paths.get(Objects.requireNonNull(getClass().getClassLoader().getResource(resourcePath)).toURI());
-            source = new String(Files.readAllBytes(path));
-        } catch (IOException | URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
+        String source = getSource(resourcePath);
 
         shaderId = glCreateShader(type);
         glShaderSource(shaderId, source);
@@ -62,6 +59,48 @@ public class Shader extends Deleteable {
                 return "compute";
             }
             default -> throw new InvalidShaderTypeException("Invalid type int of: " + type);
+        }
+    }
+
+    private static String getSource(String resourcePath) {
+        // Read the raw source:
+        String rawSource = readRaw(resourcePath);
+
+        // Process source:
+        StringBuilder processedSource = new StringBuilder();
+        Matcher matcher = INCLUDE_PATTERN.matcher(rawSource);
+
+        int lastMatchEnd = 0;
+        // Iterate over all matches of `#include` directives
+        while (matcher.find()) {
+            // Append the code before the current `#include` directive to the result
+            processedSource.append(rawSource, lastMatchEnd, matcher.start());
+
+            // Extract the path of the included file from the `#include` directive
+            String includePath = matcher.group(1);
+
+            // Read the included file
+            String includeContent = readRaw("shaders/" + includePath);
+
+            // Append the content of the included file to the result
+            processedSource.append(includeContent);
+
+            // Update the end position of the last match
+            lastMatchEnd = matcher.end();
+        }
+
+        // Append the remaining content of the file after the last `#include` directive
+        processedSource.append(rawSource.substring(lastMatchEnd));
+
+        return processedSource.toString();
+    }
+
+    private static String readRaw(String resourcePath) {
+        try {
+            Path path = Paths.get(Objects.requireNonNull(Shader.class.getClassLoader().getResource(resourcePath)).toURI());
+            return new String(Files.readAllBytes(path));
+        } catch (IOException | URISyntaxException e) {
+            throw new RuntimeException(e);
         }
     }
 }
