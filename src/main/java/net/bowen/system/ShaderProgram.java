@@ -61,6 +61,7 @@ public class ShaderProgram extends Deleteable{
     }
 
     public void setUniform1iv(String name, int[] value) {
+        use(); // Use the program first to put the uniform.
         glUniform1iv(getUniformLocation(name), value);
     }
 
