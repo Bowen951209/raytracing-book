@@ -60,7 +60,6 @@ HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t) {
 
         hit_record.hit = true;
         hit_record.t = root;
-        closest_so_far = hit_record.t;
         hit_record.p = ray.o + ray.dir * hit_record.t;
         vec3 outward_normal = (hit_record.p - sphere.center) / sphere.radius;
         hit_record.is_front_face = is_front_face(ray.dir, outward_normal);

@@ -20,6 +20,7 @@ import org.lwjgl.system.MemoryStack;
 import java.nio.IntBuffer;
 
 import static net.bowen.draw.Material.LAMBERTIAN;
+import static net.bowen.draw.Material.METAL;
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -166,8 +167,16 @@ public class Window {
 
         // Raytrace models:
         RaytraceModel.initSSBO();
-        RaytraceModel.addModel(new Sphere(0.0f, 0.0f, -1.0f, 0.5f, LAMBERTIAN, 0.8f, 0.8f, 0.0f));
+
+        // ground
         RaytraceModel.addModel(new Sphere(0.0f, -100.5f, -1.0f, 100.0f, LAMBERTIAN, 0.7f, 0.3f, 0.3f));
+        // center
+        RaytraceModel.addModel(new Sphere(0.0f, 0.0f, -1.0f, 0.5f, LAMBERTIAN, 0.8f, 0.8f, 0.0f));
+        // left
+        RaytraceModel.addModel(new Sphere(-1.0f, 0.0f, -1.0f, 0.5f, METAL, 0.8f, 0.8f, 0.8f));
+        // right
+        RaytraceModel.addModel(new Sphere(1.0f, 0.0f, -1.0f, 0.5f, METAL, 0.8f, 0.6f, 0.2f));
+
         RaytraceModel.putModelsToProgram();
     }
 

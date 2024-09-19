@@ -34,7 +34,9 @@ public abstract class RaytraceModel {
         // - 1 float for radius
         // - 3 floats for albedo (vec3)
         // - 1 float for material
-        FloatBuffer buffer = MemoryUtil.memAllocFloat(MODELS.size() * 8);
+        FloatBuffer buffer = MemoryUtil.memAllocFloat(MODELS.size() * 8 + 4);
+        buffer.put(MODELS.size()); // the length of the models
+        buffer.put(0f).put(0f).put(0f); // paddings
         for (RaytraceModel model : MODELS) {
             // Center position (vec3)
             buffer.put(model.data[0]).put(model.data[1]).put(model.data[2]); // x, y, z

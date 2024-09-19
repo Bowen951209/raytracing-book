@@ -6,6 +6,7 @@ layout (local_size_x = 16, local_size_y = 16) in;
 
 const float INFINITY = 3.402823E+38;
 const float MATERIAL_LAMBERTIAN = 0.0;
+const float MATERIAL_METAL = 1.0;
 
 uniform int u_sample_per_pixel; // Count random.glsl samples for each pixel.
 uniform int u_max_depth;        // Maximum number of ray bounces into scene.
@@ -15,13 +16,13 @@ vec2 pixel_coord;
 vec2 pixel_delta_u;
 vec2 pixel_delta_v;
 float rand_factor = 0.0;
-float closest_so_far = 0.0;
 
 // The includes. Must be after the global variables because some of the includes use those.
 #include <utils/interval.glsl>
 #include <utils/random.glsl>
 #include <utils/hitting.glsl>
 #include <utils/lambertian.glsl>
+#include <utils/metal.glsl>
 
 struct Ray {
     vec3 o;     // origin
@@ -49,6 +50,7 @@ struct Interval {
 };
 
 layout(std430, binding = 0) buffer DataBuffer {
+    float spheres_count; // Count of spheres sent in from Java side.
     Sphere spheres[];
 };
 
@@ -66,6 +68,7 @@ vec3 rand_on_hemisphere(vec3 normal);
 HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t);
 vec2 pixel_sample_square(int i);
 vec3 lambertian_scatter(vec3 normal);
+vec3 metal_scatter(vec3 ray_in_dir, vec3 normal);
 
 // Transform the passed in linear-space color to gamma space using gamma value of 2.
 vec3 linear_to_gamma(vec3 linear_component) {
@@ -78,8 +81,9 @@ bool near_zero(vec3 v) {
     return v.x < s && v.y < s && v.z < s;
 }
 
-vec3 scatter(vec3 normal, float material) {
+vec3 scatter(vec3 ray_in_dir, vec3 normal, float material) {
     if(material == MATERIAL_LAMBERTIAN) return lambertian_scatter(normal);
+    else if(material == MATERIAL_METAL) return metal_scatter(ray_in_dir, normal);
 }
 
 vec2 get_norm_coord(int i) {
@@ -111,17 +115,20 @@ vec3 get_color(Ray ray) {
         HitRecord hit_record;
         float material;
         vec3 albedo;
-        for (int j = 0; j < 2; j++) {
-            hit_record = hit_sphere(ray, spheres[j], Interval(0.001, INFINITY));
+        bool has_hit_anything = false;
+        float nearest_so_far = INFINITY;
+        for (int j = 0; j < spheres_count; j++) {
+            hit_record = hit_sphere(ray, spheres[j], Interval(0.001, nearest_so_far));
             if (hit_record.hit) {
                 material = spheres[j].material;
                 albedo = spheres[j].albedo;
-                break;
+                nearest_so_far = hit_record.t;
+                has_hit_anything = true;
             }
         }
 
-        if (hit_record.hit) {
-            ray.dir = scatter(hit_record.normal, material);
+        if (has_hit_anything) {
+            ray.dir = scatter(ray.dir, hit_record.normal, material);
             // Catch degenerate scatter direction.
             if(near_zero(ray.dir)) {
                 ray.dir = hit_record.normal;
