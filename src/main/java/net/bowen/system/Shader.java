@@ -2,12 +2,10 @@ package net.bowen.system;
 
 import net.bowen.exceptions.InvalidShaderTypeException;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Objects;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -96,10 +94,12 @@ public class Shader extends Deleteable {
     }
 
     private static String readRaw(String resourcePath) {
-        try {
-            Path path = Paths.get(Objects.requireNonNull(Shader.class.getClassLoader().getResource(resourcePath)).toURI());
-            return new String(Files.readAllBytes(path));
-        } catch (IOException | URISyntaxException e) {
+        try (InputStream inputStream = Shader.class.getClassLoader().getResourceAsStream(resourcePath)) {
+            if (inputStream == null) {
+                throw new FileNotFoundException("Resource not found: " + resourcePath);
+            }
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
