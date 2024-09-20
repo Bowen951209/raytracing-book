@@ -21,8 +21,7 @@ float rand_factor = 0.0;
 #include <utils/interval.glsl>
 #include <utils/random.glsl>
 #include <utils/hitting.glsl>
-#include <utils/lambertian.glsl>
-#include <utils/metal.glsl>
+#include <utils/scatter.glsl>
 
 struct Ray {
     vec3 o;     // origin
