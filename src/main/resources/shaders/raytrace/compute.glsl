@@ -153,7 +153,7 @@ void main() {
     pixel_delta_u = vec2(pixel_coord.x, 0.0) / image_size.x;
     pixel_delta_v = vec2(0.0, pixel_coord.y) / image_size.y;
 
-    vec3 color;
+    vec3 color = vec3(0.0);
     for (int i = 0; i < u_sample_per_pixel; i++) {
         Ray ray = get_ray(get_norm_coord(i));
         color += get_color(ray) / u_sample_per_pixel;
