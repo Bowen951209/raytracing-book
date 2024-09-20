@@ -67,7 +67,7 @@ vec3 rand_on_hemisphere(vec3 normal);
 HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t);
 vec2 pixel_sample_square(int i);
 vec3 lambertian_scatter(vec3 normal);
-vec3 metal_scatter(vec3 ray_in_dir, vec3 normal);
+vec3 metal_scatter(vec3 ray_in_dir, vec3 normal, float fuzz);
 
 // Transform the passed in linear-space color to gamma space using gamma value of 2.
 vec3 linear_to_gamma(vec3 linear_component) {
@@ -81,8 +81,13 @@ bool near_zero(vec3 v) {
 }
 
 vec3 scatter(vec3 ray_in_dir, vec3 normal, float material) {
-    if(material == MATERIAL_LAMBERTIAN) return lambertian_scatter(normal);
-    else if(material == MATERIAL_METAL) return metal_scatter(ray_in_dir, normal);
+    if(material == MATERIAL_LAMBERTIAN) {
+        return lambertian_scatter(normal);
+    } else if(int(material) == MATERIAL_METAL) {
+        // The fuzz value is set in the floating point of the material variable, so:
+        float fuzz = material - MATERIAL_METAL;
+        return metal_scatter(ray_in_dir, normal, fuzz);
+    }
 }
 
 vec2 get_norm_coord(int i) {
@@ -134,7 +139,11 @@ vec3 get_color(Ray ray) {
             }
             ray.o = hit_record.p;
             color_scale *= albedo;
-            continue;
+
+            // If the ray is not absorbed by the object, recursive the raytrace.
+            if (dot(ray.dir, hit_record.normal) > 0.0) {
+                continue;
+            }
         }
 
         vec3 unit_direction = normalize(ray.dir);

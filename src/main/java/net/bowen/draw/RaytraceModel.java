@@ -1,5 +1,6 @@
 package net.bowen.draw;
 
+import net.bowen.draw.material.Material;
 import net.bowen.system.BufferObject;
 import org.lwjgl.system.MemoryUtil;
 
@@ -15,6 +16,12 @@ public abstract class RaytraceModel {
     private static BufferObject ssbo;
 
     protected float[] data;
+
+    private final Material material;
+
+    protected RaytraceModel(Material material) {
+        this.material = material;
+    }
 
     public static void addModel(RaytraceModel model) {
         MODELS.add(model);
@@ -45,10 +52,10 @@ public abstract class RaytraceModel {
             buffer.put(model.data[3]);
 
             // Albedo (vec3)
-            buffer.put(model.data[5]).put(model.data[6]).put(model.data[7]); // r, g, b
+            buffer.put(model.material.getAlbedo()); // r, g, b
 
             // Material (float)
-            buffer.put(model.data[4]);
+            buffer.put(model.material.getValue());
         }
         buffer.flip();
 

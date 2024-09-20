@@ -4,9 +4,12 @@ import imgui.ImGui;
 import imgui.flag.ImGuiConfigFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
-import net.bowen.draw.RaytraceModel;
 import net.bowen.draw.Quad;
+import net.bowen.draw.RaytraceModel;
 import net.bowen.draw.Sphere;
+import net.bowen.draw.material.Lambertian;
+import net.bowen.draw.material.Material;
+import net.bowen.draw.material.Metal;
 import net.bowen.system.Deleteable;
 import net.bowen.system.Shader;
 import net.bowen.system.ShaderProgram;
@@ -19,8 +22,6 @@ import org.lwjgl.system.MemoryStack;
 
 import java.nio.IntBuffer;
 
-import static net.bowen.draw.Material.LAMBERTIAN;
-import static net.bowen.draw.Material.METAL;
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -168,14 +169,19 @@ public class Window {
         // Raytrace models:
         RaytraceModel.initSSBO();
 
+        Material groundMaterial = new Lambertian(0.8f, 0.8f, 0.0f);
+        Material centerMaterial = new Lambertian(0.1f, 0.2f, 0.5f);
+        Material leftMaterial = new Metal(0.8f, 0.8f, 0.8f, 0.3f);
+        Material rightMaterial = new Metal(0.8f, 0.6f, 0.2f, 0.999f);
+
         // ground
-        RaytraceModel.addModel(new Sphere(0.0f, -100.5f, -1.0f, 100.0f, LAMBERTIAN, 0.7f, 0.3f, 0.3f));
+        RaytraceModel.addModel(new Sphere(0.0f, -100.5f, -1.0f, 100.0f, groundMaterial));
         // center
-        RaytraceModel.addModel(new Sphere(0.0f, 0.0f, -1.0f, 0.5f, LAMBERTIAN, 0.8f, 0.8f, 0.0f));
+        RaytraceModel.addModel(new Sphere(0.0f, 0.0f, -1.0f, 0.5f, centerMaterial));
         // left
-        RaytraceModel.addModel(new Sphere(-1.0f, 0.0f, -1.0f, 0.5f, METAL, 0.8f, 0.8f, 0.8f));
+        RaytraceModel.addModel(new Sphere(-1.0f, 0.0f, -1.0f, 0.5f, leftMaterial));
         // right
-        RaytraceModel.addModel(new Sphere(1.0f, 0.0f, -1.0f, 0.5f, METAL, 0.8f, 0.6f, 0.2f));
+        RaytraceModel.addModel(new Sphere(1.0f, 0.0f, -1.0f, 0.5f, rightMaterial));
 
         RaytraceModel.putModelsToProgram();
     }
