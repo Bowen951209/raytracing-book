@@ -20,6 +20,8 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.system.MemoryStack;
 
+import java.awt.*;
+import java.awt.geom.AffineTransform;
 import java.nio.IntBuffer;
 
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
@@ -147,6 +149,14 @@ public class Window {
         ImGui.getIO().addConfigFlags(ImGuiConfigFlags.ViewportsEnable);
         imGuiGlfw.init(windowHandle, true);
         imGuiGl3.init("#version 430 core");
+
+        // Set the scale
+        GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
+        GraphicsConfiguration gc = gd.getDefaultConfiguration();
+        AffineTransform transform = gc.getDefaultTransform();
+        float scale = (float) transform.getScaleX();  // Usually X is equal to Y, so take X here.
+        ImGui.getStyle().scaleAllSizes(scale);
+        ImGui.getIO().setFontGlobalScale(scale);
 
         guiRenderer = new GuiRenderer(this);
     }
