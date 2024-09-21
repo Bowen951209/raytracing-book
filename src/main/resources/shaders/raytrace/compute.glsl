@@ -5,8 +5,9 @@ layout (rgba32f, binding = 0) uniform image2D img_output;
 layout (local_size_x = 16, local_size_y = 16) in;
 
 const float INFINITY = 3.402823E+38;
-const float MATERIAL_LAMBERTIAN = 0.0;
-const float MATERIAL_METAL = 1.0;
+const int MATERIAL_LAMBERTIAN = 0;
+const int MATERIAL_METAL = 1;
+const int MATERIAL_DIELECTRIC = 2;
 
 uniform int u_sample_per_pixel; // Count random.glsl samples for each pixel.
 uniform int u_max_depth;        // Maximum number of ray bounces into scene.
@@ -80,13 +81,22 @@ bool near_zero(vec3 v) {
     return v.x < s && v.y < s && v.z < s;
 }
 
-vec3 scatter(vec3 ray_in_dir, vec3 normal, float material) {
-    if(material == MATERIAL_LAMBERTIAN) {
-        return lambertian_scatter(normal);
-    } else if(int(material) == MATERIAL_METAL) {
-        // The fuzz value is set in the floating point of the material variable, so:
-        float fuzz = material - MATERIAL_METAL;
-        return metal_scatter(ray_in_dir, normal, fuzz);
+vec3 scatter(vec3 ray_in_dir, vec3 normal, bool is_front_face, float material) {
+    switch (int(material)) {
+        case MATERIAL_LAMBERTIAN: {
+            return lambertian_scatter(normal);
+        }
+        case MATERIAL_METAL: {
+            // The fuzz value is set in the floating point of the material variable, so:
+            float fuzz = material - MATERIAL_METAL;
+            return metal_scatter(ray_in_dir, normal, fuzz);
+        }
+        case MATERIAL_DIELECTRIC: {
+            // The index of refraction is set from the 2nd digit in the floating point, so:
+            float eta = (material - MATERIAL_DIELECTRIC) * 10.0;
+            if(is_front_face) eta = 1.0 / eta;
+            return refract(ray_in_dir, normal, eta);
+        }
     }
 }
 
@@ -132,7 +142,7 @@ vec3 get_color(Ray ray) {
         }
 
         if (has_hit_anything) {
-            ray.dir = scatter(ray.dir, hit_record.normal, material);
+            ray.dir = scatter(ray.dir, hit_record.normal, hit_record.is_front_face, material);
             // Catch degenerate scatter direction.
             if(near_zero(ray.dir)) {
                 ray.dir = hit_record.normal;

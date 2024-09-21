@@ -7,6 +7,7 @@ import imgui.glfw.ImGuiImplGlfw;
 import net.bowen.draw.Quad;
 import net.bowen.draw.RaytraceModel;
 import net.bowen.draw.Sphere;
+import net.bowen.draw.material.Dielectric;
 import net.bowen.draw.material.Lambertian;
 import net.bowen.draw.material.Material;
 import net.bowen.draw.material.Metal;
@@ -181,7 +182,7 @@ public class Window {
 
         Material groundMaterial = new Lambertian(0.8f, 0.8f, 0.0f);
         Material centerMaterial = new Lambertian(0.1f, 0.2f, 0.5f);
-        Material leftMaterial = new Metal(0.8f, 0.8f, 0.8f, 0.3f);
+        Material leftMaterial = new Dielectric(1.00f / 1.33f);
         Material rightMaterial = new Metal(0.8f, 0.6f, 0.2f, 0.999f);
 
         // ground
