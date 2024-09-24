@@ -182,15 +182,18 @@ public class Window {
 
         Material groundMaterial = new Lambertian(0.8f, 0.8f, 0.0f);
         Material centerMaterial = new Lambertian(0.1f, 0.2f, 0.5f);
-        Material leftMaterial = new Dielectric(1.00f / 1.33f);
+        Material leftMaterial = new Dielectric(1.5f);
+        Material bubbleMaterial = new Dielectric(1.0f / 1.5f);
         Material rightMaterial = new Metal(0.8f, 0.6f, 0.2f, 0.999f);
 
         // ground
         RaytraceModel.addModel(new Sphere(0.0f, -100.5f, -1.0f, 100.0f, groundMaterial));
         // center
-        RaytraceModel.addModel(new Sphere(0.0f, 0.0f, -1.0f, 0.5f, centerMaterial));
+        RaytraceModel.addModel(new Sphere(0.0f, 0.0f, -1.2f, 0.5f, centerMaterial));
         // left
         RaytraceModel.addModel(new Sphere(-1.0f, 0.0f, -1.0f, 0.5f, leftMaterial));
+        // bubble inside left
+        RaytraceModel.addModel(new Sphere(-1.0f, 0.0f, -1.0f, 0.4f, bubbleMaterial));
         // right
         RaytraceModel.addModel(new Sphere(1.0f, 0.0f, -1.0f, 0.5f, rightMaterial));
 
