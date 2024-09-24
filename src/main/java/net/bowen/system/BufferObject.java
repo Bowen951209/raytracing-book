@@ -8,9 +8,11 @@ import java.nio.IntBuffer;
 
 public class BufferObject extends Deleteable {
     private final int bufferId;
+    private final int bufferType;
 
-    public BufferObject() {
+    public BufferObject(int bufferType) {
         super(true);
+        this.bufferType = bufferType;
         bufferId = glGenBuffers();
     }
 
@@ -24,18 +26,18 @@ public class BufferObject extends Deleteable {
         return bufferId;
     }
 
-    public void bind(int target) {
-        glBindBuffer(target, bufferId);
+    public void bind() {
+        glBindBuffer(bufferType, bufferId);
     }
 
     // Upload vertex data to the GPU
-    public void uploadData(int target, FloatBuffer data, int usage) {
-        glBufferData(target, data, usage);
+    public void uploadData(FloatBuffer data, int usage) {
+        glBufferData(bufferType, data, usage);
     }
 
     // Upload index data to the GPU (for element array buffers)
-    public void uploadData(int target, IntBuffer data, int usage) {
-        glBufferData(target, data, usage);
+    public void uploadData(IntBuffer data, int usage) {
+        glBufferData(bufferType, data, usage);
     }
 
     // Define vertex attributes

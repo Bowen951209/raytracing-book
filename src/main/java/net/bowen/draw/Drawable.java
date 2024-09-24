@@ -12,8 +12,8 @@ import static org.lwjgl.opengl.GL15.GL_ELEMENT_ARRAY_BUFFER;
 
 public abstract class Drawable {
     protected final VertexArrayObject vao = new VertexArrayObject();
-    protected final BufferObject vbo = new BufferObject();
-    protected final BufferObject ebo = new BufferObject();
+    protected final BufferObject vbo = new BufferObject(GL_ARRAY_BUFFER);
+    protected final BufferObject ebo = new BufferObject(GL_ELEMENT_ARRAY_BUFFER);
     private final float[] vertices;
     private final int[] indices;
 
@@ -29,15 +29,15 @@ public abstract class Drawable {
     }
 
     protected void uploadVertexData() {
-        vbo.bind(GL_ARRAY_BUFFER);
+        vbo.bind();
         FloatBuffer vertexBuffer = MemoryUtil.memAllocFloat(vertices.length).put(vertices).flip();
-        vbo.uploadData(GL_ARRAY_BUFFER, vertexBuffer, GL_STATIC_DRAW);
+        vbo.uploadData(vertexBuffer, GL_STATIC_DRAW);
         MemoryUtil.memFree(vertexBuffer);
     }
     protected void uploadIndexData() {
-        ebo.bind(GL_ELEMENT_ARRAY_BUFFER);
+        ebo.bind();
         IntBuffer indexBuffer = MemoryUtil.memAllocInt(indices.length).put(indices).flip();
-        ebo.uploadData(GL_ELEMENT_ARRAY_BUFFER, indexBuffer, GL_STATIC_DRAW);
+        ebo.uploadData(indexBuffer, GL_STATIC_DRAW);
         MemoryUtil.memFree(indexBuffer);
     }
 

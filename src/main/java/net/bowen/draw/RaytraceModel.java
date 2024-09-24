@@ -29,8 +29,8 @@ public abstract class RaytraceModel {
 
     public static void initSSBO() {
         // Init the ssbo we want to pass data to program through.
-        ssbo = new BufferObject();
-        ssbo.bind(GL_SHADER_STORAGE_BUFFER);
+        ssbo = new BufferObject(GL_SHADER_STORAGE_BUFFER);
+        ssbo.bind();
         // Bind the SSBO to a binding point
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo.getId());
     }
@@ -59,7 +59,7 @@ public abstract class RaytraceModel {
         }
         buffer.flip();
 
-        ssbo.uploadData(GL_SHADER_STORAGE_BUFFER, buffer, GL_STATIC_DRAW);
+        ssbo.uploadData(buffer, GL_STATIC_DRAW);
         MemoryUtil.memFree(buffer);
     }
 }
