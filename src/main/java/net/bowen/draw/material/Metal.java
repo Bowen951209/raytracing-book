@@ -16,6 +16,8 @@ public class Metal extends Material{
 
     @Override
     public float getValue() {
+        // The floating point digits are the fuzz value. For example, metal material with fuzz value of 0.3 will
+        // be represented as 1.3, where 1 is the id of the metal material.
         return materialId + fuzz;
     }
 }
