@@ -4,13 +4,12 @@ import imgui.ImGui;
 import imgui.flag.ImGuiConfigFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
+import net.bowen.draw.Camera;
 import net.bowen.draw.Quad;
 import net.bowen.draw.RaytraceModel;
 import net.bowen.draw.Sphere;
-import net.bowen.draw.material.Dielectric;
 import net.bowen.draw.material.Lambertian;
 import net.bowen.draw.material.Material;
-import net.bowen.draw.material.Metal;
 import net.bowen.system.Deleteable;
 import net.bowen.system.Shader;
 import net.bowen.system.ShaderProgram;
@@ -177,25 +176,21 @@ public class Window {
         // Drawable models:
         screenQuad = new Quad(-1.0f, 1.0f, 2.0f, 2.0f);
 
+        // Camera:
+        Camera camera = new Camera();
+        camera.setImageSize(500, 300);
+        camera.setProgram(computeProgram);
+        camera.init();
+
         // Raytrace models:
         RaytraceModel.initSSBO();
 
-        Material groundMaterial = new Lambertian(0.8f, 0.8f, 0.0f);
-        Material centerMaterial = new Lambertian(0.1f, 0.2f, 0.5f);
-        Material leftMaterial = new Dielectric(1.5f);
-        Material bubbleMaterial = new Dielectric(1.0f / 1.5f);
-        Material rightMaterial = new Metal(0.8f, 0.6f, 0.2f, 0.999f);
+        float r = (float) Math.cos(Math.PI / 4);
+        Material leftMaterial = new Lambertian(0, 0, 1);
+        Material rightMaterial = new Lambertian(1, 0, 0);
 
-        // ground
-        RaytraceModel.addModel(new Sphere(0.0f, -100.5f, -1.0f, 100.0f, groundMaterial));
-        // center
-        RaytraceModel.addModel(new Sphere(0.0f, 0.0f, -1.2f, 0.5f, centerMaterial));
-        // left
-        RaytraceModel.addModel(new Sphere(-1.0f, 0.0f, -1.0f, 0.5f, leftMaterial));
-        // bubble inside left
-        RaytraceModel.addModel(new Sphere(-1.0f, 0.0f, -1.0f, 0.4f, bubbleMaterial));
-        // right
-        RaytraceModel.addModel(new Sphere(1.0f, 0.0f, -1.0f, 0.5f, rightMaterial));
+        RaytraceModel.addModel(new Sphere(-r, 0, -1, r, leftMaterial));
+        RaytraceModel.addModel(new Sphere(r, 0, -1, r, rightMaterial));
 
         RaytraceModel.putModelsToProgram();
     }

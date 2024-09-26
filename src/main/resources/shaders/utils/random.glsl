@@ -32,12 +32,12 @@ vec3 rand_unit_vec() {
 vec3 rand_on_hemisphere(vec3 normal) {
     vec3 on_unit_sphere = rand_unit_vec();
     if(dot(on_unit_sphere, normal) > 0.0) { // In the same hemisphere as the normal
-                                            return on_unit_sphere;
+        return on_unit_sphere;
     }
     return -on_unit_sphere;
 }
 
-vec2 pixel_sample_square(int i) {
+vec2 pixel_sample_square() {
     float px = -0.5 + rand();
     float py = -0.5 + rand();
     return px * pixel_delta_u + py * pixel_delta_v;
