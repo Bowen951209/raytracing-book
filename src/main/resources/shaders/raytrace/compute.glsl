@@ -51,10 +51,13 @@ layout(std430, binding = 1) buffer CameraBuffer {
     float viewport_width;
     float viewport_height;
     float aspect_ratio;
+    float defocus_angle;
     vec3 camera_pos;
     vec3 up_left_pos;
     vec3 pixel_delta_u;
     vec3 pixel_delta_v;
+    vec3 defocus_disk_u;
+    vec3 defocus_disk_v;
 };
 
 // The includes. Must be after the global variables and ssbos because some of the includes use those.
@@ -131,8 +134,11 @@ vec3 get_norm_coord() {
 }
 
 Ray get_ray(vec3 normal_coord) {
+    // Construct a camera ray originating from the defocus disk and directed at a randomly
+    // sampled point around the pixel location.
+
     Ray ray;
-    ray.o = camera_pos;
+    ray.o = (defocus_angle <= 0) ? camera_pos : defocus_disk_sample();;
     ray.dir = normal_coord - ray.o;
 
     return ray;

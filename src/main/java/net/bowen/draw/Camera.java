@@ -31,6 +31,10 @@ public class Camera {
      */
     private final Vector3f pixelDeltaU = new Vector3f(), pixelDeltaV = new Vector3f();
     /**
+     * Defocus disk horizontal/vertical radius.
+     */
+    private final Vector3f defocusDiskU = new Vector3f(), defocusDiskV = new Vector3f();
+    /**
      * The up left position for the viewport in normal coordinate.
      */
     private final Vector3f upLeftPosition = new Vector3f();
@@ -53,6 +57,14 @@ public class Camera {
      */
     private float aspectRatio;
     /**
+     * Variation angle of rays through each pixel.
+     */
+    private float defocusAngle = 0;
+    /**
+     *  Distance from camera lookFrom point to plane of perfect focus.
+     */
+    private float focusDist = 10;
+    /**
      * The shader storage buffer object which is bind to the compute shader's binding point.
      */
     private BufferObject ssbo;
@@ -62,10 +74,9 @@ public class Camera {
      */
     public void init() {
         // Determine viewport dimensions.
-        float focalLength = new Vector3f(lookFrom).sub(lookAt).length();
         float theta = (float) Math.toRadians(vFOV);
         float h = (float) (Math.tan(theta / 2.0f));
-        viewportHeight = 2.0f * h * focalLength;
+        viewportHeight = 2.0f * h * focusDist;
         viewportWidth = viewportHeight * aspectRatio;
 
         // Calculate the u, v, w.
@@ -81,9 +92,14 @@ public class Camera {
         pixelDeltaV.set(viewportV).div(imageHeight);
 
         // Up left position.
-        upLeftPosition.set(lookAt);
+        upLeftPosition.set(lookFrom).sub(new Vector3f(w).mul(focusDist));
         upLeftPosition.sub(new Vector3f(viewportU).div(2)); // translate left
         upLeftPosition.sub(new Vector3f(viewportV).div(2)); // translate up v it up
+
+        // The camera defocus disk basis vectors.
+        float defocusRadius = (float) (focusDist * Math.tan(Math.toRadians(defocusAngle / 2)));
+        defocusDiskU.set(u).mul(defocusRadius);
+        defocusDiskV.set(v).mul(defocusRadius);
 
 
         // Init the SSBO.
@@ -96,9 +112,8 @@ public class Camera {
     }
 
     private void putToShaderProgram() {
-        FloatBuffer buffer = MemoryUtil.memAllocFloat(20);
-        buffer.put(viewportWidth).put(viewportHeight).put(aspectRatio);
-        buffer.put(0); // padding
+        FloatBuffer buffer = MemoryUtil.memAllocFloat(28);
+        buffer.put(viewportWidth).put(viewportHeight).put(aspectRatio).put(defocusAngle);
         DataUtils.putToBuffer(lookFrom, buffer);
         buffer.put(0); // padding
         DataUtils.putToBuffer(upLeftPosition, buffer);
@@ -106,6 +121,10 @@ public class Camera {
         DataUtils.putToBuffer(pixelDeltaU, buffer);
         buffer.put(0); // padding
         DataUtils.putToBuffer(pixelDeltaV, buffer);
+        buffer.put(0); // padding
+        DataUtils.putToBuffer(defocusDiskU, buffer);
+        buffer.put(0); // padding
+        DataUtils.putToBuffer(defocusDiskV, buffer);
         buffer.put(0); // padding
         buffer.flip();
         ssbo.uploadData(buffer, GL_STATIC_DRAW);
@@ -131,5 +150,13 @@ public class Camera {
 
     public void setVerticalFOV(float vFOV) {
         this.vFOV = vFOV;
+    }
+
+    public void setDefocusAngle(float defocusAngle) {
+        this.defocusAngle = defocusAngle;
+    }
+
+    public void setFocusDist(float focusDist) {
+        this.focusDist = focusDist;
     }
 }

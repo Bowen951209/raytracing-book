@@ -184,6 +184,8 @@ public class Window {
         camera.setLookFrom(-2, 2, 1);
         camera.setLookAt(0, 0, -1);
         camera.setVerticalFOV(20);
+        camera.setDefocusAngle(10);
+        camera.setFocusDist(3.4f);
         camera.init();
 
         // Raytrace models:
