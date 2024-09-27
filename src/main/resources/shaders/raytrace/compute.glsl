@@ -51,8 +51,10 @@ layout(std430, binding = 1) buffer CameraBuffer {
     float viewport_width;
     float viewport_height;
     float aspect_ratio;
-    vec2 pixel_delta_u;
-    vec2 pixel_delta_v;
+    vec3 camera_pos;
+    vec3 up_left_pos;
+    vec3 pixel_delta_u;
+    vec3 pixel_delta_v;
 };
 
 // The includes. Must be after the global variables and ssbos because some of the includes use those.
@@ -73,7 +75,7 @@ vec3 rand_vec_in_unit_sphere();
 vec3 rand_unit_vec();
 vec3 rand_on_hemisphere(vec3 normal);
 HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t);
-vec2 pixel_sample_square();
+vec3 pixel_sample_square();
 vec3 lambertian_scatter(vec3 normal);
 vec3 metal_scatter(vec3 ray_in_dir, vec3 normal, float fuzz);
 vec3 refract_scatter(vec3 ray_in_dir, vec3 normal, float eta);
@@ -112,26 +114,26 @@ vec3 scatter(vec3 ray_in_dir, vec3 normal, bool is_front_face, float material) {
     }
 }
 
-vec2 get_norm_coord() {
+vec3 get_norm_coord() {
     float aspect_ratio = image_size.x / image_size.y;
 
     // Normalize x and y into range [-viewport_width / 2, viewport_width / 2] and [-viewport_height / 2, viewport_height / 2].
-    vec2 coord;
+    vec3 coord = up_left_pos;
 
     // X
-    coord.x = pixel_coord.x / image_size.x * viewport_width - viewport_width / 2.0;
+    coord += pixel_coord.x * pixel_delta_u;
     // Y
-    coord.y = pixel_coord.y / image_size.y * viewport_height - viewport_height / 2.0;
+    coord += pixel_coord.y * pixel_delta_v;
 
     // random offset (for multi-sampling)
     coord += pixel_sample_square();
     return coord;
 }
 
-Ray get_ray(vec2 normal_coord) {
+Ray get_ray(vec3 normal_coord) {
     Ray ray;
-    ray.o = vec3(0.0);
-    ray.dir = vec3(normal_coord, -1.0);
+    ray.o = camera_pos;
+    ray.dir = normal_coord - ray.o;
 
     return ray;
 }

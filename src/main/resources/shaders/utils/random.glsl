@@ -37,7 +37,7 @@ vec3 rand_on_hemisphere(vec3 normal) {
     return -on_unit_sphere;
 }
 
-vec2 pixel_sample_square() {
+vec3 pixel_sample_square() {
     float px = -0.5 + rand();
     float py = -0.5 + rand();
     return px * pixel_delta_u + py * pixel_delta_v;
