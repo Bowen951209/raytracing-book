@@ -98,15 +98,15 @@ public class Camera {
     private void putToShaderProgram() {
         FloatBuffer buffer = MemoryUtil.memAllocFloat(20);
         buffer.put(viewportWidth).put(viewportHeight).put(aspectRatio);
-        buffer.put(0);
+        buffer.put(0); // padding
         DataUtils.putToBuffer(lookFrom, buffer);
-        buffer.put(0);
+        buffer.put(0); // padding
         DataUtils.putToBuffer(upLeftPosition, buffer);
-        buffer.put(0);
+        buffer.put(0); // padding
         DataUtils.putToBuffer(pixelDeltaU, buffer);
-        buffer.put(0);
+        buffer.put(0); // padding
         DataUtils.putToBuffer(pixelDeltaV, buffer);
-        buffer.put(0);
+        buffer.put(0); // padding
         buffer.flip();
         ssbo.uploadData(buffer, GL_STATIC_DRAW);
         MemoryUtil.memFree(buffer);
