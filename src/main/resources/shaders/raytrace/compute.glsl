@@ -14,16 +14,8 @@ uniform int u_max_depth;        // Maximum number of ray bounces into scene.
 
 vec2 image_size;
 vec2 pixel_coord;
-vec2 pixel_delta_u;
-vec2 pixel_delta_v;
 float rand_factor = 0.0;
 bool should_scatter;
-
-// The includes. Must be after the global variables because some of the includes use those.
-#include <utils/interval.glsl>
-#include <utils/random.glsl>
-#include <utils/hitting.glsl>
-#include <utils/scatter.glsl>
 
 struct Ray {
     vec3 o;     // origin
@@ -50,10 +42,29 @@ struct Interval {
     float max;
 };
 
-layout(std430, binding = 0) buffer DataBuffer {
+layout(std430, binding = 0) buffer ModelsBuffer {
     float spheres_count; // Count of spheres sent in from Java side.
     Sphere spheres[];
 };
+
+layout(std430, binding = 1) buffer CameraBuffer {
+    float viewport_width;
+    float viewport_height;
+    float aspect_ratio;
+    float defocus_angle;
+    vec3 camera_pos;
+    vec3 up_left_pos;
+    vec3 pixel_delta_u;
+    vec3 pixel_delta_v;
+    vec3 defocus_disk_u;
+    vec3 defocus_disk_v;
+};
+
+// The includes. Must be after the global variables and ssbos because some of the includes use those.
+#include <utils/interval.glsl>
+#include <utils/random.glsl>
+#include <utils/hitting.glsl>
+#include <utils/scatter.glsl>
 
 bool interval_surrounds(Interval interval, float x);
 bool is_front_face(vec3 ray_dir, vec3 outward_normal);
@@ -67,7 +78,7 @@ vec3 rand_vec_in_unit_sphere();
 vec3 rand_unit_vec();
 vec3 rand_on_hemisphere(vec3 normal);
 HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t);
-vec2 pixel_sample_square(int i);
+vec3 pixel_sample_square();
 vec3 lambertian_scatter(vec3 normal);
 vec3 metal_scatter(vec3 ray_in_dir, vec3 normal, float fuzz);
 vec3 refract_scatter(vec3 ray_in_dir, vec3 normal, float eta);
@@ -106,23 +117,29 @@ vec3 scatter(vec3 ray_in_dir, vec3 normal, bool is_front_face, float material) {
     }
 }
 
-vec2 get_norm_coord(int i) {
+vec3 get_norm_coord() {
     float aspect_ratio = image_size.x / image_size.y;
 
-    vec2 pixel_coord_rand = pixel_coord + pixel_sample_square(i);
+    // Normalize x and y into range [-viewport_width / 2, viewport_width / 2] and [-viewport_height / 2, viewport_height / 2].
+    vec3 coord = up_left_pos;
 
-    // Get the normalized coordinate. For the case of aspect_ratio >= 1, y should be transformed into range [-1, 1]
-    //, and x should have the same scale as y (translation should be scaled too).
-    vec2 coord;
-    coord.x = pixel_coord_rand.x / image_size.y * 2.0 - aspect_ratio;
-    coord.y = -(pixel_coord_rand.y / image_size.y * 2.0 - 1.0);
+    // X
+    coord += pixel_coord.x * pixel_delta_u;
+    // Y
+    coord += pixel_coord.y * pixel_delta_v;
+
+    // random offset (for multi-sampling)
+    coord += pixel_sample_square();
     return coord;
 }
 
-Ray get_ray(vec2 normal_coord) {
+Ray get_ray(vec3 normal_coord) {
+    // Construct a camera ray originating from the defocus disk and directed at a randomly
+    // sampled point around the pixel location.
+
     Ray ray;
-    ray.o = vec3(0.0);
-    ray.dir = vec3(normal_coord, -1.0);
+    ray.o = (defocus_angle <= 0) ? camera_pos : defocus_disk_sample();;
+    ray.dir = normal_coord - ray.o;
 
     return ray;
 }
@@ -176,12 +193,10 @@ vec3 get_color(Ray ray) {
 void main() {
     pixel_coord = gl_GlobalInvocationID.xy;
     image_size = vec2(imageSize(img_output));
-    pixel_delta_u = vec2(pixel_coord.x, 0.0) / image_size.x;
-    pixel_delta_v = vec2(0.0, pixel_coord.y) / image_size.y;
 
     vec3 color = vec3(0.0);
     for (int i = 0; i < u_sample_per_pixel; i++) {
-        Ray ray = get_ray(get_norm_coord(i));
+        Ray ray = get_ray(get_norm_coord());
         color += get_color(ray) / u_sample_per_pixel;
     }
 

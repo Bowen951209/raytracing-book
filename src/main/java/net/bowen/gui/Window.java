@@ -4,6 +4,7 @@ import imgui.ImGui;
 import imgui.flag.ImGuiConfigFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
+import net.bowen.draw.Camera;
 import net.bowen.draw.Quad;
 import net.bowen.draw.RaytraceModel;
 import net.bowen.draw.Sphere;
@@ -177,24 +178,31 @@ public class Window {
         // Drawable models:
         screenQuad = new Quad(-1.0f, 1.0f, 2.0f, 2.0f);
 
+        // Camera:
+        Camera camera = new Camera();
+        camera.setImageSize(500, 300);
+        camera.setLookFrom(-2, 2, 1);
+        camera.setLookAt(0, 0, -1);
+        camera.setVerticalFOV(20);
+        camera.setDefocusAngle(10);
+        camera.setFocusDist(3.4f);
+        camera.init();
+
         // Raytrace models:
         RaytraceModel.initSSBO();
 
+        // Materials:
         Material groundMaterial = new Lambertian(0.8f, 0.8f, 0.0f);
         Material centerMaterial = new Lambertian(0.1f, 0.2f, 0.5f);
         Material leftMaterial = new Dielectric(1.5f);
         Material bubbleMaterial = new Dielectric(1.0f / 1.5f);
-        Material rightMaterial = new Metal(0.8f, 0.6f, 0.2f, 0.999f);
+        Material rightMaterial = new Metal(0.8f, 0.6f, 0.2f, 0.99f);
 
-        // ground
+        // Add spheres to the static set.
         RaytraceModel.addModel(new Sphere(0.0f, -100.5f, -1.0f, 100.0f, groundMaterial));
-        // center
         RaytraceModel.addModel(new Sphere(0.0f, 0.0f, -1.2f, 0.5f, centerMaterial));
-        // left
         RaytraceModel.addModel(new Sphere(-1.0f, 0.0f, -1.0f, 0.5f, leftMaterial));
-        // bubble inside left
         RaytraceModel.addModel(new Sphere(-1.0f, 0.0f, -1.0f, 0.4f, bubbleMaterial));
-        // right
         RaytraceModel.addModel(new Sphere(1.0f, 0.0f, -1.0f, 0.5f, rightMaterial));
 
         RaytraceModel.putModelsToProgram();

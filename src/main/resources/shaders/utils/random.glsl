@@ -11,6 +11,20 @@ float rand(float minVal, float maxVal) {
     return minVal + rand() * (maxVal - minVal);
 }
 
+vec3 random_in_unit_disk() {
+    while (true) {
+        vec3 p = vec3(rand(-1.0, 1.0), rand(-1.0, 1.0), 0.0);
+        if (dot(p, p) < 1) return p;
+    }
+}
+
+// Returns a random point in the camera defocus disk.
+vec3 defocus_disk_sample() {
+    vec3 p = random_in_unit_disk();
+    return camera_pos + (p.x * defocus_disk_u) + (p.y * defocus_disk_v);
+}
+
+
 vec3 rand_vec3(float min_val, float max_val) {
     float rand1 = rand(min_val, max_val);
     float rand2 = rand(min_val, max_val);
@@ -32,12 +46,12 @@ vec3 rand_unit_vec() {
 vec3 rand_on_hemisphere(vec3 normal) {
     vec3 on_unit_sphere = rand_unit_vec();
     if(dot(on_unit_sphere, normal) > 0.0) { // In the same hemisphere as the normal
-                                            return on_unit_sphere;
+        return on_unit_sphere;
     }
     return -on_unit_sphere;
 }
 
-vec2 pixel_sample_square(int i) {
+vec3 pixel_sample_square() {
     float px = -0.5 + rand();
     float py = -0.5 + rand();
     return px * pixel_delta_u + py * pixel_delta_v;

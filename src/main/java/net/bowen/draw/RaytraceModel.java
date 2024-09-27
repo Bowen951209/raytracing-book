@@ -5,13 +5,13 @@ import net.bowen.system.BufferObject;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.FloatBuffer;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.lwjgl.opengl.GL43.*;
 
 public abstract class RaytraceModel {
-    private static final List<RaytraceModel> MODELS = new ArrayList<>();
+    private static final Set<RaytraceModel> MODELS = new HashSet<>();
 
     private static BufferObject ssbo;
 
