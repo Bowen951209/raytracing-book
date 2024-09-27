@@ -8,8 +8,10 @@ import net.bowen.draw.Camera;
 import net.bowen.draw.Quad;
 import net.bowen.draw.RaytraceModel;
 import net.bowen.draw.Sphere;
+import net.bowen.draw.material.Dielectric;
 import net.bowen.draw.material.Lambertian;
 import net.bowen.draw.material.Material;
+import net.bowen.draw.material.Metal;
 import net.bowen.system.Deleteable;
 import net.bowen.system.Shader;
 import net.bowen.system.ShaderProgram;
@@ -179,18 +181,27 @@ public class Window {
         // Camera:
         Camera camera = new Camera();
         camera.setImageSize(500, 300);
-        camera.setProgram(computeProgram);
+        camera.setLookFrom(-2, 2, 1);
+        camera.setLookAt(0, 0, -1);
+        camera.setVerticalFOV(20);
         camera.init();
 
         // Raytrace models:
         RaytraceModel.initSSBO();
 
-        float r = (float) Math.cos(Math.PI / 4);
-        Material leftMaterial = new Lambertian(0, 0, 1);
-        Material rightMaterial = new Lambertian(1, 0, 0);
+        // Materials:
+        Material groundMaterial = new Lambertian(0.8f, 0.8f, 0.0f);
+        Material centerMaterial = new Lambertian(0.1f, 0.2f, 0.5f);
+        Material leftMaterial = new Dielectric(1.5f);
+        Material bubbleMaterial = new Dielectric(1.0f / 1.5f);
+        Material rightMaterial = new Metal(0.8f, 0.6f, 0.2f, 0.99f);
 
-        RaytraceModel.addModel(new Sphere(-r, 0, -1, r, leftMaterial));
-        RaytraceModel.addModel(new Sphere(r, 0, -1, r, rightMaterial));
+        // Add spheres to the static set.
+        RaytraceModel.addModel(new Sphere(0.0f, -100.5f, -1.0f, 100.0f, groundMaterial));
+        RaytraceModel.addModel(new Sphere(0.0f, 0.0f, -1.2f, 0.5f, centerMaterial));
+        RaytraceModel.addModel(new Sphere(-1.0f, 0.0f, -1.0f, 0.5f, leftMaterial));
+        RaytraceModel.addModel(new Sphere(-1.0f, 0.0f, -1.0f, 0.4f, bubbleMaterial));
+        RaytraceModel.addModel(new Sphere(1.0f, 0.0f, -1.0f, 0.5f, rightMaterial));
 
         RaytraceModel.putModelsToProgram();
     }

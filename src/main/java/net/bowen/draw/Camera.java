@@ -133,11 +133,4 @@ public class Camera {
     public void setVerticalFOV(float vFOV) {
         this.vFOV = vFOV;
     }
-
-    /**
-     * Set the target shader program we want to put the camera's properties to.
-     */
-    public void setProgram(ShaderProgram program) {
-        this.program = program;
-    }
 }
