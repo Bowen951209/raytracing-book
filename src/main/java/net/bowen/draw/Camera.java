@@ -2,7 +2,6 @@ package net.bowen.draw;
 
 import net.bowen.system.BufferObject;
 import net.bowen.system.DataUtils;
-import net.bowen.system.ShaderProgram;
 import org.joml.Vector3f;
 import org.lwjgl.system.MemoryUtil;
 
@@ -53,10 +52,6 @@ public class Camera {
      * The value of {@link #imageWidth} / {@link #imageHeight}
      */
     private float aspectRatio;
-    /**
-     * The shader program we're sending the camera properties to.
-     */
-    private ShaderProgram program;
     /**
      * The shader storage buffer object which is bind to the compute shader's binding point.
      */
@@ -126,8 +121,12 @@ public class Camera {
         aspectRatio = (float) w / h;
     }
 
-    public void setPosition(float x, float y, float z) {
+    public void setLookFrom(float x, float y, float z) {
         lookFrom.set(x, y, z);
+    }
+
+    public void setLookAt(float x, float y, float z) {
+        lookAt.set(x, y, z);
     }
 
     public void setVerticalFOV(float vFOV) {
