@@ -59,6 +59,9 @@ public abstract class RaytraceModel {
         }
         buffer.flip();
 
+        if (ssbo == null)
+            throw new NullPointerException("ssbo is null. Has it been initialized?");
+
         ssbo.uploadData(buffer, GL_STATIC_DRAW);
         MemoryUtil.memFree(buffer);
     }

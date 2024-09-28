@@ -1,8 +1,19 @@
 package net.bowen.draw.material;
 
-public class Metal extends Material{
+import net.bowen.draw.Color;
 
+public class Metal extends Material{
     private final float fuzz;
+
+    /**
+     * @param fuzz The fuzz value of tha material. Need to be in range [0, 1).
+     */
+    public Metal(Color color, float fuzz) {
+        super(METAL, color);
+        if (fuzz < 0 || fuzz >= 1)
+            throw new IllegalArgumentException("Fuzz value should always in range [0, 1).");
+        this.fuzz = fuzz;
+    }
 
     /**
      * @param fuzz The fuzz value of tha material. Need to be in range [0, 1).

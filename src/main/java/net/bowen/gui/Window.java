@@ -5,6 +5,7 @@ import imgui.flag.ImGuiConfigFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
 import net.bowen.draw.Camera;
+import net.bowen.draw.Color;
 import net.bowen.draw.Quad;
 import net.bowen.draw.RaytraceModel;
 import net.bowen.draw.Sphere;
@@ -16,6 +17,7 @@ import net.bowen.system.Deleteable;
 import net.bowen.system.Shader;
 import net.bowen.system.ShaderProgram;
 import net.bowen.system.Texture;
+import org.joml.Vector3f;
 import org.lwjgl.Version;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
@@ -25,6 +27,7 @@ import org.lwjgl.system.MemoryStack;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.nio.IntBuffer;
+import java.util.Random;
 
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
 import static org.lwjgl.glfw.GLFW.*;
@@ -178,34 +181,62 @@ public class Window {
         // Drawable models:
         screenQuad = new Quad(-1.0f, 1.0f, 2.0f, 2.0f);
 
-        // Camera:
-        Camera camera = new Camera();
-        camera.setImageSize(500, 300);
-        camera.setLookFrom(-2, 2, 1);
-        camera.setLookAt(0, 0, -1);
-        camera.setVerticalFOV(20);
-        camera.setDefocusAngle(10);
-        camera.setFocusDist(3.4f);
-        camera.init();
-
-        // Raytrace models:
         RaytraceModel.initSSBO();
+        Material mat = new Lambertian(0.5f, 0.5f,0.5f);
+        RaytraceModel.addModel(new Sphere(0, -1, 0, 0.5f, mat));
+        Material groundMaterial = new Lambertian(0.5f, 0.5f, 0.5f);
+        RaytraceModel.addModel(new Sphere(0, -1000, 0, 1000, groundMaterial));
 
-        // Materials:
-        Material groundMaterial = new Lambertian(0.8f, 0.8f, 0.0f);
-        Material centerMaterial = new Lambertian(0.1f, 0.2f, 0.5f);
-        Material leftMaterial = new Dielectric(1.5f);
-        Material bubbleMaterial = new Dielectric(1.0f / 1.5f);
-        Material rightMaterial = new Metal(0.8f, 0.6f, 0.2f, 0.99f);
+        Random random = new Random();
+        Vector3f center = new Vector3f();
+        for (int a = -11; a < 11; a++) {
+            for (int b = -11; b < 11; b++) {
+                double chooseMaterial = Math.random();
+                center.set(a + 0.9f * Math.random(), 0.2f, b + 0.9f * Math.random());
 
-        // Add spheres to the static set.
-        RaytraceModel.addModel(new Sphere(0.0f, -100.5f, -1.0f, 100.0f, groundMaterial));
-        RaytraceModel.addModel(new Sphere(0.0f, 0.0f, -1.2f, 0.5f, centerMaterial));
-        RaytraceModel.addModel(new Sphere(-1.0f, 0.0f, -1.0f, 0.5f, leftMaterial));
-        RaytraceModel.addModel(new Sphere(-1.0f, 0.0f, -1.0f, 0.4f, bubbleMaterial));
-        RaytraceModel.addModel(new Sphere(1.0f, 0.0f, -1.0f, 0.5f, rightMaterial));
+                if ((new Vector3f(center).sub(4, 0.2f, 0)).length() > 0.9f) {
+                    Material sphereMaterial;
+
+                    if (chooseMaterial < 0.8) {
+                        // diffuse
+                        Color albedo = Color.randomColor().mul(Color.randomColor());
+                        sphereMaterial = new Lambertian(albedo);
+                        RaytraceModel.addModel(new Sphere(center, 0.2f, sphereMaterial));
+                    } else if (chooseMaterial < 0.95) {
+                        // metal
+                        Color albedo = Color.randomColor(0.5f, 1);
+                        float fuzz = random.nextFloat(0, 0.5f);
+                        sphereMaterial = new Metal(albedo, fuzz);
+                        RaytraceModel.addModel(new Sphere(center, 0.2f, sphereMaterial));
+                    } else {
+                        // glass
+                        sphereMaterial = new Dielectric(1.5f);
+                        RaytraceModel.addModel(new Sphere(center, 0.2f, sphereMaterial));
+                    }
+                }
+            }
+        }
+
+        Material material1 = new Dielectric(1.5f);
+        RaytraceModel.addModel(new Sphere(0, 1, 0, 1, material1));
+
+        Material material2 = new Lambertian(0.4f, 0.2f, 0.1f);
+        RaytraceModel.addModel(new Sphere(-4, 1, 0, 1, material2));
+
+        Material material3 = new Metal(0.7f, 0.6f, 0.5f, 0);
+        RaytraceModel.addModel(new Sphere(4, 1, 0, 1, material3));
 
         RaytraceModel.putModelsToProgram();
+
+        Camera cam = new Camera();
+
+        cam.setImageSize(500, 300);
+        cam.setVerticalFOV(20);
+        cam.setLookFrom(13, 2, 3);
+        cam.setLookAt(0, 0, 0);
+        cam.setDefocusAngle(0.6f);
+        cam.setFocusDist(10);
+        cam.init();
     }
 
     private void initTextures() {

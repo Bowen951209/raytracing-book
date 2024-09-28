@@ -1,5 +1,7 @@
 package net.bowen.draw.material;
 
+import net.bowen.draw.Color;
+
 public abstract class Material {
     public static final int LAMBERTIAN = 0;
     public static final int METAL = 1;
@@ -7,6 +9,10 @@ public abstract class Material {
 
     protected final int materialId;
     protected final float[] albedo;
+
+    public Material(int materialId, Color color) {
+        this(materialId, color.r, color.g, color.b);
+    }
 
     public Material(int materialId, float albedoR, float albedoG, float albedoB) {
         this.materialId = materialId;
