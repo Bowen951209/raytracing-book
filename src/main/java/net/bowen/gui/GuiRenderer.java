@@ -1,33 +1,26 @@
 package net.bowen.gui;
 
 import imgui.ImGui;
-import net.bowen.system.QueryTimer;
+import net.bowen.system.RaytraceExecutor;
 
 public class GuiRenderer implements GuiLayer {
     private final Window window;
-    private final QueryTimer queryTimer = new QueryTimer();
-    private final int[] samplePerPixel = new int[] {100};
-    private final int[] maxDepth = new int[] {50};
+    private final RaytraceExecutor raytraceExecutor;
+    private final int[] samplePerPixel = new int[] {20};
+    private final int[] maxDepth = new int[] {5};
 
     public GuiRenderer(Window window) {
         this.window = window;
+        raytraceExecutor = window.getRaytraceExecutor();
+
+        multiSampleSliderSlide();
     }
 
     @Override
     public void draw() {
-        // The render button.
-        if (ImGui.button("render")) {
-            renderBtnClicked();
-        }
-
-        // The text viewing the elapsed time of the raytrace.
-        ImGui.sameLine();
-        if (queryTimer.checkResultAvailable()) {
-            int timeMs = queryTimer.getElapsedTime();
-            ImGui.text("Rendered in: " + timeMs + " ms.");
-        } else {
-            ImGui.text("Rendering in progress...");
-        }
+        int renderCompleteTime = raytraceExecutor.getFinishPeriod();
+        String text = renderCompleteTime == -1 ? "Rendering..." : "Rendered in: " + renderCompleteTime + " ms.";
+        ImGui.text(text);
 
         // Slider for multi-sample count.
         if (ImGui.sliderInt("Sample per pixel", samplePerPixel, 1, 100)) {
@@ -40,19 +33,14 @@ public class GuiRenderer implements GuiLayer {
         }
     }
 
-    public void renderBtnClicked() {
-        queryTimer.startQuery();
-        window.raytrace();
-        queryTimer.endQuery();
-    }
-
-    public void multiSampleSliderSlide() {
-        // Send the count to the shader.
-        window.computeProgram.setUniform1iv("sample_per_pixel", samplePerPixel);
+    private void multiSampleSliderSlide() {
+        raytraceExecutor.setSamplePerPixel(samplePerPixel[0]);
+        raytraceExecutor.resetCompleteState();
     }
 
     public void maxBounceSliderSlide() {
         // Send the count to the shader.
         window.computeProgram.setUniform1iv("max_depth", maxDepth);
+        raytraceExecutor.resetCompleteState();
     }
 }

@@ -1,5 +1,6 @@
 package net.bowen.system;
 
+import java.nio.FloatBuffer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -63,6 +64,11 @@ public class ShaderProgram extends Deleteable{
     public void setUniform1iv(String name, int[] value) {
         use(); // Use the program first to put the uniform.
         glUniform1iv(getUniformLocation(name), value);
+    }
+
+    public void setUniform1fv(String name, FloatBuffer value) {
+        use(); // Use the program first to put the uniform.
+        glUniform1fv(getUniformLocation(name), value);
     }
 
     private void detachAndDeleteShaders() {

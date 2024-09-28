@@ -11,6 +11,9 @@ const int MATERIAL_DIELECTRIC = 2;
 
 uniform int sample_per_pixel; // Count random.glsl samples for each pixel.
 uniform int max_depth;        // Maximum number of ray bounces into scene.
+uniform float last_color_scale; // The color scale last time dispatch call applied.
+uniform float this_color_scale; // The color scale this time dispatch call applies.
+uniform float u_rand_factor; // The initial random vector. This is for varying randomness from call to call.
 
 layout(std140, binding = 0) uniform Camera {
     float viewport_width;
@@ -27,7 +30,7 @@ layout(std140, binding = 0) uniform Camera {
 
 vec2 image_size;
 vec2 pixel_coord;
-float rand_factor = 0.0;
+float rand_factor = u_rand_factor;
 bool should_scatter;
 
 struct Ray {
@@ -192,13 +195,20 @@ vec3 get_color(Ray ray) {
 
 void main() {
     pixel_coord = gl_GlobalInvocationID.xy;
+    ivec2 i_pixel_coord = ivec2(pixel_coord);
     image_size = vec2(imageSize(img_output));
 
-    vec3 color = vec3(0.0);
-    for (int i = 0; i < sample_per_pixel; i++) {
-        Ray ray = get_ray(get_norm_coord());
-        color += get_color(ray) / sample_per_pixel;
+    // Get the color in the img_ouput object and mix it with the color of this raytrace.
+    vec3 color = imageLoad(img_output, i_pixel_coord).rgb;
+    if(last_color_scale == 0.0) {
+        // Reset the color to zero if it's first sample.
+        color *= 0.0;
+    } else {
+        color /= last_color_scale; // to x1 color
+        color *= this_color_scale; // to x(1/render_count) color
     }
+    Ray ray = get_ray(get_norm_coord());
+    color += get_color(ray) * this_color_scale;
 
-    imageStore(img_output, ivec2(pixel_coord), vec4(color, 1.0));
+    imageStore(img_output, i_pixel_coord, vec4(color, 1.0));
 }

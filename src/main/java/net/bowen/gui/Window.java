@@ -4,19 +4,13 @@ import imgui.ImGui;
 import imgui.flag.ImGuiConfigFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
-import net.bowen.draw.Camera;
 import net.bowen.draw.Color;
-import net.bowen.draw.Quad;
-import net.bowen.draw.RaytraceModel;
-import net.bowen.draw.Sphere;
+import net.bowen.draw.*;
 import net.bowen.draw.material.Dielectric;
 import net.bowen.draw.material.Lambertian;
 import net.bowen.draw.material.Material;
 import net.bowen.draw.material.Metal;
-import net.bowen.system.Deleteable;
-import net.bowen.system.Shader;
-import net.bowen.system.ShaderProgram;
-import net.bowen.system.Texture;
+import net.bowen.system.*;
 import org.joml.Vector3f;
 import org.lwjgl.Version;
 import org.lwjgl.glfw.GLFWErrorCallback;
@@ -35,10 +29,7 @@ import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.GL_WRITE_ONLY;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.GL_RGBA32F;
-import static org.lwjgl.opengl.GL42.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT;
-import static org.lwjgl.opengl.GL42.glMemoryBarrier;
 import static org.lwjgl.opengl.GL43.GL_COMPUTE_SHADER;
-import static org.lwjgl.opengl.GL43.glDispatchCompute;
 import static org.lwjgl.system.MemoryStack.stackPush;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
@@ -51,6 +42,7 @@ public class Window {
     private Quad screenQuad;
     private Texture quadTexture;
     private GuiRenderer guiRenderer;
+    private RaytraceExecutor raytraceExecutor;
 
     ShaderProgram quadProgram, computeProgram;
 
@@ -68,23 +60,16 @@ public class Window {
         System.out.println("Initializing...");
         long startTime = System.currentTimeMillis();
         initGLFW();
-        initImGui();
         initShaderPrograms();
         initTextures();
         initModels();
+        initRaytraceExecutor();
+        initImGui();
         float initTime = (System.currentTimeMillis() - startTime) / 1000f;
         System.out.println("Initialization completed in " + initTime + " sec.");
 
-        // Upload the multi-sample count uniform
-        guiRenderer.multiSampleSliderSlide();
-
         // Upload the max depth uniform
         guiRenderer.maxBounceSliderSlide();
-
-        // Raytrace and render the first image(using the gui btn, so we can see the elapsed time)
-        System.out.println("Rendering first image...");
-        guiRenderer.renderBtnClicked();
-        System.out.println("First image rendered complete.");
 
         // Make the window visible
         glfwShowWindow(windowHandle);
@@ -182,7 +167,7 @@ public class Window {
         screenQuad = new Quad(-1.0f, 1.0f, 2.0f, 2.0f);
 
         RaytraceModel.initSSBO();
-        Material mat = new Lambertian(0.5f, 0.5f,0.5f);
+        Material mat = new Lambertian(0.5f, 0.5f, 0.5f);
         RaytraceModel.addModel(new Sphere(0, -1, 0, 0.5f, mat));
         Material groundMaterial = new Lambertian(0.5f, 0.5f, 0.5f);
         RaytraceModel.addModel(new Sphere(0, -1000, 0, 1000, groundMaterial));
@@ -249,15 +234,9 @@ public class Window {
         glUniform1i(texLocation, 0); // 0 corresponds to GL_TEXTURE0
     }
 
-    public void raytrace() {
-        computeProgram.use();
-        int localSizeX = 16, localSizeY = 16;
-        int numGroupsX = (quadTexture.getWidth() + localSizeX - 1) / localSizeX;
-        int numGroupsY = (quadTexture.getHeight() + localSizeY - 1) / localSizeY;
-        glDispatchCompute(numGroupsX, numGroupsY, 1); // Dispatch the work groups
-
-        // Ensure all work has completed
-        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT); // Ensure the write to image is visible to subsequent operations
+    private void initRaytraceExecutor() {
+        raytraceExecutor = new RaytraceExecutor(quadTexture, computeProgram);
+        raytraceExecutor.addCompleteListener(() -> System.out.println("All samples have completed."));
     }
 
     /**
@@ -277,6 +256,9 @@ public class Window {
             imGuiGlfw.newFrame();
             imGuiGl3.newFrame();
             ImGui.newFrame();
+
+            if (!raytraceExecutor.sampleComplete())
+                raytraceExecutor.raytrace();
 
             drawResult();
             guiRenderer.draw();
@@ -323,5 +305,9 @@ public class Window {
 
         // Free the deletables
         Deleteable.deleteCreatedInstances();
+    }
+
+    public RaytraceExecutor getRaytraceExecutor() {
+        return raytraceExecutor;
     }
 }
