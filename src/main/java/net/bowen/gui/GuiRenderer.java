@@ -48,11 +48,11 @@ public class GuiRenderer implements GuiLayer {
 
     public void multiSampleSliderSlide() {
         // Send the count to the shader.
-        window.computeProgram.setUniform1iv("u_sample_per_pixel", samplePerPixel);
+        window.computeProgram.setUniform1iv("sample_per_pixel", samplePerPixel);
     }
 
     public void maxBounceSliderSlide() {
         // Send the count to the shader.
-        window.computeProgram.setUniform1iv("u_max_depth", maxDepth);
+        window.computeProgram.setUniform1iv("max_depth", maxDepth);
     }
 }

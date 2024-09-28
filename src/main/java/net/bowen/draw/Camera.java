@@ -65,9 +65,9 @@ public class Camera {
      */
     private float focusDist = 10;
     /**
-     * The shader storage buffer object which is bind to the compute shader's binding point.
+     * The uniform buffer object which is bind to the compute shader's binding point.
      */
-    private BufferObject ssbo;
+    private BufferObject ubo;
 
     /**
      * Init the camera and send the set data to the specified shader program.
@@ -102,12 +102,10 @@ public class Camera {
         defocusDiskV.set(v).mul(defocusRadius);
 
 
-        // Init the SSBO.
-        ssbo = new BufferObject(GL_SHADER_STORAGE_BUFFER);
-        ssbo.bind();
-        // Bind the SSBO to a binding point
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo.getId());
-
+        // Init the UBO.
+        ubo = new BufferObject(GL_UNIFORM_BUFFER);
+        ubo.bind();
+        glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo.getId());
         putToShaderProgram();
     }
 
@@ -127,7 +125,7 @@ public class Camera {
         DataUtils.putToBuffer(defocusDiskV, buffer);
         buffer.put(0); // padding
         buffer.flip();
-        ssbo.uploadData(buffer, GL_STATIC_DRAW);
+        ubo.uploadData(buffer, GL_STATIC_DRAW);
         MemoryUtil.memFree(buffer);
     }
 

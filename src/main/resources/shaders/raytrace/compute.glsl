@@ -9,8 +9,21 @@ const int MATERIAL_LAMBERTIAN = 0;
 const int MATERIAL_METAL = 1;
 const int MATERIAL_DIELECTRIC = 2;
 
-uniform int u_sample_per_pixel; // Count random.glsl samples for each pixel.
-uniform int u_max_depth;        // Maximum number of ray bounces into scene.
+uniform int sample_per_pixel; // Count random.glsl samples for each pixel.
+uniform int max_depth;        // Maximum number of ray bounces into scene.
+
+layout(std140, binding = 0) uniform Camera {
+    float viewport_width;
+    float viewport_height;
+    float aspect_ratio;
+    float defocus_angle;
+    vec3 camera_pos;
+    vec3 up_left_pos;
+    vec3 pixel_delta_u;
+    vec3 pixel_delta_v;
+    vec3 defocus_disk_u;
+    vec3 defocus_disk_v;
+};
 
 vec2 image_size;
 vec2 pixel_coord;
@@ -45,19 +58,6 @@ struct Interval {
 layout(std430, binding = 0) buffer ModelsBuffer {
     float spheres_count; // Count of spheres sent in from Java side.
     Sphere spheres[];
-};
-
-layout(std430, binding = 1) buffer CameraBuffer {
-    float viewport_width;
-    float viewport_height;
-    float aspect_ratio;
-    float defocus_angle;
-    vec3 camera_pos;
-    vec3 up_left_pos;
-    vec3 pixel_delta_u;
-    vec3 pixel_delta_v;
-    vec3 defocus_disk_u;
-    vec3 defocus_disk_v;
 };
 
 // The includes. Must be after the global variables and ssbos because some of the includes use those.
@@ -148,7 +148,7 @@ vec3 get_color(Ray ray) {
     vec3 color = vec3(0.0);
     vec3 color_scale = vec3(1.0);
 
-    for (int i = 0; i < u_max_depth; i++) {
+    for (int i = 0; i < max_depth; i++) {
         HitRecord hit_record;
         float material;
         vec3 albedo;
@@ -195,9 +195,9 @@ void main() {
     image_size = vec2(imageSize(img_output));
 
     vec3 color = vec3(0.0);
-    for (int i = 0; i < u_sample_per_pixel; i++) {
+    for (int i = 0; i < sample_per_pixel; i++) {
         Ray ray = get_ray(get_norm_coord());
-        color += get_color(ray) / u_sample_per_pixel;
+        color += get_color(ray) / sample_per_pixel;
     }
 
     imageStore(img_output, ivec2(pixel_coord), vec4(color, 1.0));
