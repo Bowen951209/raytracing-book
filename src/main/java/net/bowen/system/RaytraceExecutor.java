@@ -4,6 +4,7 @@ import org.lwjgl.BufferUtils;
 
 import java.nio.FloatBuffer;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import static org.lwjgl.opengl.GL42.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT;
@@ -87,11 +88,13 @@ public class RaytraceExecutor {
             startTime = (int) System.currentTimeMillis();
 
         // Check available timers and put theirs value in to #lastDispatchTime.
-        for (QueryTimer timer : timers) {
+        Iterator<QueryTimer> iterator = timers.iterator();
+        while (iterator.hasNext()) {
+            QueryTimer timer = iterator.next();
             if (timer.checkResultAvailable()) {
                 lastDispatchTime = timer.getElapsedTime();
                 timer.delete();
-                timers.remove(timer);
+                iterator.remove();  // Safely remove the element
             }
         }
 
