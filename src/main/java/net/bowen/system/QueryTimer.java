@@ -10,9 +10,13 @@ public class QueryTimer extends Deleteable{
     private final int[] timeElapsed;
 
     private boolean resultAvailable;
+    /**
+     * If user want to print when object deleted.
+     */
+    private boolean printSilent;
 
     public QueryTimer() {
-        super(true);
+        super(false);
         queryID = glGenQueries();
         timeElapsed = new int[1];
     }
@@ -45,9 +49,17 @@ public class QueryTimer extends Deleteable{
         }
     }
 
+    /**
+     * Specify not to print out information if object deleted.
+     */
+    public void setSilent() {
+        printSilent = true;
+    }
+
     @Override
     protected void delete() {
         glDeleteQueries(queryID);
-        System.out.println("Query object(" + queryID + ") deleted.");
+        if (!printSilent)
+            System.out.println("Query object(" + queryID + ") deleted.");
     }
 }

@@ -236,7 +236,9 @@ public class Window {
 
     private void initRaytraceExecutor() {
         raytraceExecutor = new RaytraceExecutor(quadTexture, computeProgram);
-        raytraceExecutor.addCompleteListener(() -> System.out.println("All samples have completed."));
+        raytraceExecutor.addCompleteListener(
+                () -> System.out.println("All samples have completed in " + raytraceExecutor.getFinishTime() + " ms.")
+        );
     }
 
     /**

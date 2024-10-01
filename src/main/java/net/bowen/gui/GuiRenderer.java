@@ -18,9 +18,21 @@ public class GuiRenderer implements GuiLayer {
 
     @Override
     public void draw() {
-        int renderCompleteTime = raytraceExecutor.getFinishPeriod();
-        String text = renderCompleteTime == -1 ? "Rendering..." : "Rendered in: " + renderCompleteTime + " ms.";
-        ImGui.text(text);
+        int dispatchTime = raytraceExecutor.getLastDispatchTime();
+        int finishTime = raytraceExecutor.getFinishTime();
+        int numSample = raytraceExecutor.getSamples(); // num of samples that were taken.
+        int numAllSample = raytraceExecutor.getSamplePerPixel(); // num of samples that should be taken.
+
+        String dispatchInfoText = "Last raytrace took: " + dispatchTime + " ms.";
+        ImGui.text(dispatchInfoText);
+
+        String sampleInfoText = "Sample: " + numSample + "/" + numAllSample + ".";
+
+        // If all samples are finished, add more text.
+        if (finishTime != -1) {
+            sampleInfoText += "Render completed in: " + finishTime + " ms.";
+        }
+        ImGui.text(sampleInfoText);
 
         // Slider for multi-sample count.
         if (ImGui.sliderInt("Sample per pixel", samplePerPixel, 1, 100)) {

@@ -17,15 +17,29 @@ public class RaytraceExecutor {
     private final FloatBuffer thisColorScale = BufferUtils.createFloatBuffer(1);
     private final FloatBuffer randomFactor = BufferUtils.createFloatBuffer(1);
     private final List<Runnable> completeListeners = new ArrayList<>();
+    private final List<QueryTimer> timers = new ArrayList<>();
 
     /**
-     * How many times we rendered.
+     * How many samples have been taken. It's added 1 per dispatch call.
      */
-    private int renderIndex;
-    private int samplePerPixel;
+    private int samples;
+    /**
+     * The system time of the first raytrace.
+     */
     private int startTime;
-    private int finishPeriod = -1;
+    /**
+     * How long it took for all samples to finish.
+     */
+    private int finishTime = -1;
+    /**
+     * How long it took for 1 dispatch call.
+     */
+    private int lastDispatchTime;
+    /**
+     * If all samples are finished.
+     */
     private boolean isSampleComplete;
+    private int samplePerPixel;
 
     public RaytraceExecutor(Texture quadTexture, ShaderProgram program) {
         this.program = program;
@@ -42,25 +56,54 @@ public class RaytraceExecutor {
 
     public void resetCompleteState() {
         isSampleComplete = false;
-        renderIndex = 0;
-        finishPeriod = -1;
+        samples = 0;
+        finishTime = -1;
     }
 
-    public int getFinishPeriod() {
-        return finishPeriod;
+    public int getSamples() {
+        return samples;
     }
+
+    public int getSamplePerPixel() {
+        return samplePerPixel;
+    }
+
+    public int getFinishTime() {
+        return finishTime;
+    }
+
+    public int getLastDispatchTime() {
+        return lastDispatchTime;
+    }
+
 
     public void addCompleteListener(Runnable l) {
         completeListeners.add(l);
     }
 
     public void raytrace() {
-        if (renderIndex == 0)
+        // Set the start time if it's the very first raytrace.
+        if (samples == 0)
             startTime = (int) System.currentTimeMillis();
 
+        // Check available timers and put theirs value in to #lastDispatchTime.
+        for (QueryTimer timer : timers) {
+            if (timer.checkResultAvailable()) {
+                lastDispatchTime = timer.getElapsedTime();
+                timer.delete();
+                timers.remove(timer);
+            }
+        }
+
+        // Start timer for single trace timing.
+        QueryTimer timer = new QueryTimer();
+        timer.setSilent();
+        timers.add(timer);
+        timer.startQuery();
+
         // Put uniforms. The program will automatically use.
-        thisColorScale.put(1f / (renderIndex + 1));
-        lastColorScale.put(renderIndex == 0 ? 0 : 1f / renderIndex);
+        thisColorScale.put(1f / (samples + 1));
+        lastColorScale.put(samples == 0 ? 0 : 1f / samples);
         randomFactor.put((float) Math.random());
         thisColorScale.flip();
         lastColorScale.flip();
@@ -69,21 +112,26 @@ public class RaytraceExecutor {
         program.setUniform1fv("last_color_scale", lastColorScale);
         program.setUniform1fv("u_rand_factor", randomFactor);
 
+        // The dispatch call. This takes most of the time.
         glDispatchCompute(numGroupsX, numGroupsY, 1); // Dispatch the work groups
 
-        // Ensure all work has completed
+        // Ensure all work has completed.
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT); // Ensure the write to image is visible to subsequent operations
 
-        renderIndex++;
+        // End timer.
+        timer.endQuery();
+
+        samples++;
     }
 
     public boolean sampleComplete() {
         if (!isSampleComplete) {
-            isSampleComplete = renderIndex >= samplePerPixel;
+            isSampleComplete = samples >= samplePerPixel;
 
             // If turn from incomplete to complete, it's time to call the complete listeners.
             if (isSampleComplete) {
-                finishPeriod = (int) System.currentTimeMillis() - startTime;
+                // Set the finish time.
+                finishTime = (int) System.currentTimeMillis() - startTime;
                 completeListeners.forEach(Runnable::run);
             }
         }
