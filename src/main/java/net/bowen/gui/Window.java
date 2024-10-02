@@ -39,15 +39,19 @@ public class Window {
     private final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
 
     private long windowHandle;
+    private int width, height;
     private Quad screenQuad;
     private Texture quadTexture;
     private GuiRenderer guiRenderer;
     private RaytraceExecutor raytraceExecutor;
+    private Camera camera;
 
     ShaderProgram quadProgram, computeProgram;
 
-    public Window(String title) {
+    public Window(String title, int width, int height) {
         this.title = title;
+        this.width = width;
+        this.height = height;
 
         System.out.println("LWJGL version: " + Version.getVersion());
 
@@ -88,10 +92,9 @@ public class Window {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // the window will stay hidden after creation
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE); // the window will not be resizable
 
         // Create the window
-        windowHandle = glfwCreateWindow(500, 300, title, NULL, NULL);
+        windowHandle = glfwCreateWindow(width, height, title, NULL, NULL);
         if (windowHandle == NULL)
             throw new RuntimeException("Failed to create the GLFW window");
 
@@ -99,6 +102,24 @@ public class Window {
         glfwSetKeyCallback(windowHandle, (window, key, scancode, action, mods) -> {
             if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE)
                 glfwSetWindowShouldClose(window, true); // We will detect this in the rendering loop
+        });
+
+        // Frame buffer resize callback
+        glfwSetFramebufferSizeCallback(windowHandle, (window, width, height)->{
+            this.width = width;
+            this.height = height;
+
+            // Resize GL viewport.
+            glViewport(0, 0, width, height);
+
+            // Resize textures and camera.
+            quadTexture.resize(width, height);
+            camera.setImageSize(width, height);
+            camera.calculateProperties();
+            camera.putToShaderProgram();
+
+            // Reset raytrace state.
+            raytraceExecutor.resetCompleteState();
         });
 
         // Get the thread stack and push a new frame
@@ -213,19 +234,19 @@ public class Window {
 
         RaytraceModel.putModelsToProgram();
 
-        Camera cam = new Camera();
+        camera = new Camera();
 
-        cam.setImageSize(500, 300);
-        cam.setVerticalFOV(20);
-        cam.setLookFrom(13, 2, 3);
-        cam.setLookAt(0, 0, 0);
-        cam.setDefocusAngle(0.6f);
-        cam.setFocusDist(10);
-        cam.init();
+        camera.setImageSize(width, height);
+        camera.setVerticalFOV(20);
+        camera.setLookFrom(13, 2, 3);
+        camera.setLookAt(0, 0, 0);
+        camera.setDefocusAngle(0.6f);
+        camera.setFocusDist(10);
+        camera.init();
     }
 
     private void initTextures() {
-        quadTexture = new Texture(500, 300, GL_RGBA32F, GL_RGBA, GL_FLOAT, null);
+        quadTexture = new Texture(width, height, GL_RGBA32F, GL_RGBA, GL_FLOAT, null);
         quadTexture.bind();
         quadTexture.bindAsImage(0, GL_WRITE_ONLY, GL_RGBA32F);
         Texture.active(0);

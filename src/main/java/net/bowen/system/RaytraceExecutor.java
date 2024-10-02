@@ -12,8 +12,8 @@ import static org.lwjgl.opengl.GL42.glMemoryBarrier;
 import static org.lwjgl.opengl.GL43.glDispatchCompute;
 
 public class RaytraceExecutor {
+    private final Texture quadTexture;
     private final ShaderProgram program;
-    private final int numGroupsX, numGroupsY;
     private final FloatBuffer lastColorScale = BufferUtils.createFloatBuffer(1);
     private final FloatBuffer thisColorScale = BufferUtils.createFloatBuffer(1);
     private final FloatBuffer randomFactor = BufferUtils.createFloatBuffer(1);
@@ -43,12 +43,8 @@ public class RaytraceExecutor {
     private int samplePerPixel;
 
     public RaytraceExecutor(Texture quadTexture, ShaderProgram program) {
+        this.quadTexture = quadTexture;
         this.program = program;
-
-        // work group size
-        int localSizeX = 16, localSizeY = 16; // this is set in the shader
-        numGroupsX = (quadTexture.getWidth() + localSizeX - 1) / localSizeX;
-        numGroupsY = (quadTexture.getHeight() + localSizeY - 1) / localSizeY;
     }
 
     public void setSamplePerPixel(int samplePerPixel) {
@@ -114,6 +110,11 @@ public class RaytraceExecutor {
         program.setUniform1fv("this_color_scale", thisColorScale);
         program.setUniform1fv("last_color_scale", lastColorScale);
         program.setUniform1fv("u_rand_factor", randomFactor);
+
+        // Work group size.
+        int localSizeX = 16, localSizeY = 16; // this is set in the shader
+        int numGroupsX = (quadTexture.getWidth() + localSizeX - 1) / localSizeX;
+        int numGroupsY = (quadTexture.getHeight() + localSizeY - 1) / localSizeY;
 
         // The dispatch call. This takes most of the time.
         glDispatchCompute(numGroupsX, numGroupsY, 1); // Dispatch the work groups

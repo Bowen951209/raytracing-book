@@ -73,6 +73,16 @@ public class Camera {
      * Init the camera and send the set data to the specified shader program.
      */
     public void init() {
+        calculateProperties();
+
+        // Init the UBO.
+        ubo = new BufferObject(GL_UNIFORM_BUFFER);
+        ubo.bind();
+        glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo.getId());
+        putToShaderProgram();
+    }
+
+    public void calculateProperties() {
         // Determine viewport dimensions.
         float theta = (float) Math.toRadians(vFOV);
         float h = (float) (Math.tan(theta / 2.0f));
@@ -100,16 +110,9 @@ public class Camera {
         float defocusRadius = (float) (focusDist * Math.tan(Math.toRadians(defocusAngle / 2)));
         defocusDiskU.set(u).mul(defocusRadius);
         defocusDiskV.set(v).mul(defocusRadius);
-
-
-        // Init the UBO.
-        ubo = new BufferObject(GL_UNIFORM_BUFFER);
-        ubo.bind();
-        glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo.getId());
-        putToShaderProgram();
     }
 
-    private void putToShaderProgram() {
+    public void putToShaderProgram() {
         FloatBuffer buffer = MemoryUtil.memAllocFloat(28);
         buffer.put(viewportWidth).put(viewportHeight).put(aspectRatio).put(defocusAngle);
         DataUtils.putToBuffer(lookFrom, buffer);

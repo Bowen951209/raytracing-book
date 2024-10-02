@@ -5,13 +5,20 @@ import static org.lwjgl.opengl.GL43.*;
 import java.nio.ByteBuffer;
 
 public class Texture extends Deleteable{
-    private final int width, height;
     private final int textureID;
+    private final int internalFormat;
+    private final int format;
+    private final int type;
+
+    private int width, height;
 
     public Texture(int width, int height, int internalFormat, int format, int type, ByteBuffer data) {
         super(true);
         this.width = width;
         this.height = height;
+        this.internalFormat = internalFormat;
+        this.format = format;
+        this.type = type;
         textureID = glGenTextures();
 
         // Bind the texture to set its parameters
@@ -34,6 +41,13 @@ public class Texture extends Deleteable{
     public void delete() {
         glDeleteTextures(textureID);
         System.out.println("Texture(" + textureID + ") deleted.");
+    }
+
+    public void resize(int width, int height) {
+        bind();
+        glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, (ByteBuffer) null);
+        this.width = width;
+        this.height = height;
     }
 
     // Binds this texture to the active texture unit
