@@ -207,7 +207,8 @@ public class Window {
                         // diffuse
                         Color albedo = Color.randomColor().mul(Color.randomColor());
                         sphereMaterial = new Lambertian(albedo);
-                        RaytraceModel.addModel(new Sphere(center, 0.2f, sphereMaterial));
+                        Vector3f center2 = new Vector3f(center).add(new Vector3f(0, (float) (Math.random() * 0.5f), 0));
+                        RaytraceModel.addModel(new Sphere(center, center2, 0.2f, sphereMaterial));
                     } else if (chooseMaterial < 0.95) {
                         // metal
                         Color albedo = Color.randomColor(0.5f, 1);

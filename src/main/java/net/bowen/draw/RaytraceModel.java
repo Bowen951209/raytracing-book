@@ -38,18 +38,23 @@ public abstract class RaytraceModel {
     public static void putModelsToProgram() {
         // TODO: Things are only for spheres here. Adapt to other models in the future.
         // - 3 floats for center (vec3)
+        // - 3 floats for center vector (vec3)
         // - 1 float for radius
         // - 3 floats for albedo (vec3)
         // - 1 float for material
-        FloatBuffer buffer = MemoryUtil.memAllocFloat(MODELS.size() * 8 + 4);
+        FloatBuffer buffer = MemoryUtil.memAllocFloat(MODELS.size() * 12 + 4);
         buffer.put(MODELS.size()); // the length of the models
         buffer.put(0f).put(0f).put(0f); // paddings
         for (RaytraceModel model : MODELS) {
             // Center position (vec3)
             buffer.put(model.data[0]).put(model.data[1]).put(model.data[2]); // x, y, z
+            buffer.put(0); // padding
+
+            // Center vector (vec3)
+            buffer.put(model.data[3]).put(model.data[4]).put(model.data[5]);
 
             // Radius (float)
-            buffer.put(model.data[3]);
+            buffer.put(model.data[6]);
 
             // Albedo (vec3)
             buffer.put(model.material.getAlbedo()); // r, g, b

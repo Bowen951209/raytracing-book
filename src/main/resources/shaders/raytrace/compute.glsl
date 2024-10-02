@@ -36,6 +36,7 @@ bool should_scatter;
 struct Ray {
     vec3 o;     // origin
     vec3 dir;   // direction
+    float time; // a factor that is in range [0, 1).
 };
 
 struct HitRecord {
@@ -47,7 +48,8 @@ struct HitRecord {
 };
 
 struct Sphere {
-    vec3 center;
+    vec3 center1;
+    vec3 center_vec;
     float radius;
     vec3 albedo;
     float material;
@@ -143,6 +145,7 @@ Ray get_ray(vec3 normal_coord) {
     Ray ray;
     ray.o = (defocus_angle <= 0) ? camera_pos : defocus_disk_sample();;
     ray.dir = normal_coord - ray.o;
+    ray.time = rand();
 
     return ray;
 }
