@@ -60,7 +60,14 @@ struct Interval {
     float max;
 };
 
+struct AABB {
+    Interval x;
+    Interval y;
+    Interval z;
+};
+
 struct BVHNode {
+    AABB bbox;
     float left_idx;
     float right_idx;
 };

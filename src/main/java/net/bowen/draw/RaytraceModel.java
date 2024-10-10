@@ -85,10 +85,14 @@ public abstract class RaytraceModel {
         MemoryUtil.memFree(buffer);
     }
 
+    protected abstract AABB boundingBox();
+
     private static void putBVHNodesToProgram() {
-        FloatBuffer buffer = MemoryUtil.memAllocFloat(SPHERES.size());
-        for (int i = 0; i < SPHERES.size(); i++) {
+        FloatBuffer buffer = MemoryUtil.memAllocFloat(SPHERES.size() * 4 + 1);
+        for (int i = 0; i < SPHERES.size(); i+=2) {
+            buffer.put(0).put(0).put(0).put(0).put(0).put(0);
             buffer.put(i);
+            buffer.put(i+1);
         }
         buffer.flip();
 
