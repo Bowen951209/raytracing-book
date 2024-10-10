@@ -99,6 +99,7 @@ vec3 rand_vec_in_unit_sphere();
 vec3 rand_unit_vec();
 vec3 rand_on_hemisphere(vec3 normal);
 HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t);
+bool hitAABB(Ray ray, AABB aabb, Interval ray_t);
 vec3 pixel_sample_square();
 vec3 lambertian_scatter(vec3 normal);
 vec3 metal_scatter(vec3 ray_in_dir, vec3 normal, float fuzz);
@@ -134,6 +135,45 @@ vec3 scatter(vec3 ray_in_dir, vec3 normal, bool is_front_face, float material) {
             if(is_front_face) eta = 1.0 / eta;
             should_scatter = true;
             return refract_scatter(ray_in_dir, normal, eta);
+        }
+    }
+}
+
+bool isSphere(float index) {
+    float id = index - int(index);
+    return interval_surrounds(Interval(0.001, 0.101), id);
+}
+
+HitRecord traceTroughBVH(Ray ray, Interval ray_t) {
+    HitRecord hit_record;
+    hit_record.hit = false;
+
+    BVHNode node = bvh_nodes[0];
+
+    while(true) {
+        if (!hitAABB(ray, node.bbox, ray_t))
+        return hit_record;
+
+        if (isSphere(node.left_idx)) {
+            HitRecord temp_record = hit_sphere(ray, spheres[int(node.left_idx)], ray_t);
+            if (temp_record.hit) {
+                hit_record = temp_record;
+                ray_t.max = hit_record.t;
+            }
+        } else {
+            node = bvh_nodes[int(node.left_idx)];
+            continue; // recurse
+        }
+
+        if (isSphere(node.right_idx)) {
+            HitRecord temp_record = hit_sphere(ray, spheres[int(node.right_idx)], ray_t);
+            if (temp_record.hit) {
+                hit_record = temp_record;
+                return hit_record;
+            }
+        } else {
+            node = bvh_nodes[int(node.right_idx)];
+            continue; // recurse
         }
     }
 }

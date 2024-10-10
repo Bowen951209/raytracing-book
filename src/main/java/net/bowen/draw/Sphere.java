@@ -4,6 +4,8 @@ import net.bowen.draw.material.Material;
 import org.joml.Vector3f;
 
 public class Sphere extends RaytraceModel {
+    public static final float MODEL_ID = 0.1f;
+
     private final Vector3f center1 = new Vector3f(), center2 = new Vector3f();
     private final float radius;
 

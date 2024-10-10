@@ -5,27 +5,30 @@ import net.bowen.system.BufferObject;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.FloatBuffer;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.lwjgl.opengl.GL43.*;
 
 public abstract class RaytraceModel {
-    private static final Set<Sphere> SPHERES = new HashSet<>();
+    private static final List<Sphere> SPHERES = new ArrayList<>();
+    protected static final List<BVHNode> BVH_NODES = new ArrayList<>();
 
     private static BufferObject sphereSSBO, bvhSSBO;
 
-    protected float[] data;
-
     private final Material material;
+
+    protected float[] data;
+    protected float id;
 
     protected RaytraceModel(Material material) {
         this.material = material;
     }
 
     public static void addModel(RaytraceModel model) {
-        // assume it always be sphere
+        // assume it always is sphere
         SPHERES.add((Sphere) model);
+        model.id = SPHERES.size() - 1 + Sphere.MODEL_ID;
     }
 
     public static void initSSBO() {
@@ -45,6 +48,9 @@ public abstract class RaytraceModel {
     public static void putModelsToProgram() {
         sphereSSBO.bind();
         putSpheresToProgram();
+
+        // Create BVH nodes
+        new BVHNode(SPHERES, 0, SPHERES.size());
 
         bvhSSBO.bind();
         putBVHNodesToProgram();
@@ -88,11 +94,9 @@ public abstract class RaytraceModel {
     protected abstract AABB boundingBox();
 
     private static void putBVHNodesToProgram() {
-        FloatBuffer buffer = MemoryUtil.memAllocFloat(SPHERES.size() * 4 + 1);
-        for (int i = 0; i < SPHERES.size(); i+=2) {
-            buffer.put(0).put(0).put(0).put(0).put(0).put(0);
-            buffer.put(i);
-            buffer.put(i+1);
+        FloatBuffer buffer = MemoryUtil.memAllocFloat(BVH_NODES.size() * 8);
+        for (BVHNode bvhNode : BVH_NODES) {
+            bvhNode.putToBuffer(buffer);
         }
         buffer.flip();
 

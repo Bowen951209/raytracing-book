@@ -1,12 +1,13 @@
 package net.bowen.draw;
 
-import net.bowen.draw.material.Material;
 import net.bowen.math.Interval;
 import org.joml.Vector3f;
-import static java.lang.Math.*;
+
+import static java.lang.Math.max;
+import static java.lang.Math.min;
 
 public class AABB extends RaytraceModel {
-    private final Interval x = new Interval(), y = new Interval(), z = new Interval();
+    public final Interval x = new Interval(), y = new Interval(), z = new Interval();
 
     public AABB() {
         super(null);
@@ -31,6 +32,12 @@ public class AABB extends RaytraceModel {
         x.set(box1.x, box2.x);
         y.set(box1.y, box2.y);
         z.set(box1.z, box2.z);
+    }
+
+    public Interval axisInterval(int n) {
+        if (n == 1) return y;
+        if (n == 2) return z;
+        return x;
     }
 
     @Override

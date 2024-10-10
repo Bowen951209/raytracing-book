@@ -1,8 +1,8 @@
 package net.bowen.math;
 
 public class Interval {
-    private float min;
-    private float max;
+    public float min;
+    public float max;
 
     public Interval() {
         set(-Float.MAX_VALUE, Float.MAX_VALUE);
