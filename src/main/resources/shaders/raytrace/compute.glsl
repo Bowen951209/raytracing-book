@@ -60,9 +60,18 @@ struct Interval {
     float max;
 };
 
+struct BVHNode {
+    float left_idx;
+    float right_idx;
+};
+
 layout(std430, binding = 0) buffer ModelsBuffer {
     float spheres_count; // Count of spheres sent in from Java side.
     Sphere spheres[];
+};
+
+layout(std430, binding = 1) buffer BVHBuffer {
+    BVHNode bvh_nodes[];
 };
 
 // The includes. Must be after the global variables and ssbos because some of the includes use those.
@@ -159,16 +168,32 @@ vec3 get_color(Ray ray) {
         float material;
         vec3 albedo;
         bool has_hit_anything = false;
-        float nearest_so_far = INFINITY;
-        for (int j = 0; j < spheres_count; j++) {
-            hit_record = hit_sphere(ray, spheres[j], Interval(0.001, nearest_so_far));
-            if (hit_record.hit) {
-                material = spheres[j].material;
-                albedo = spheres[j].albedo;
-                nearest_so_far = hit_record.t;
+        Interval ray_t = Interval(0.001, INFINITY);
+
+        for (int j = 0; j < spheres_count / 2; j++) {
+            HitRecord temp_record;
+            Sphere sphere = spheres[int(bvh_nodes[j].left_idx)];
+            temp_record = hit_sphere(ray, sphere, ray_t);
+            if (temp_record.hit) {
+                hit_record = temp_record;
+                material = sphere.material;
+                albedo = sphere.albedo;
+                ray_t.max = temp_record.t;
+                has_hit_anything = true;
+            }
+
+            sphere = spheres[int(bvh_nodes[j].right_idx)];
+            temp_record = hit_sphere(ray, sphere, ray_t);
+            if (temp_record.hit) {
+                hit_record = temp_record;
+                material = sphere.material;
+                albedo = sphere.albedo;
+                ray_t.max = hit_record.t;
                 has_hit_anything = true;
             }
         }
+
+
 
         if (has_hit_anything) {
             ray.dir = scatter(ray.dir, hit_record.normal, hit_record.is_front_face, material);
