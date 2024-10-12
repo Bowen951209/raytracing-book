@@ -11,18 +11,24 @@ import java.util.List;
 import static org.lwjgl.opengl.GL43.*;
 
 public abstract class RaytraceModel {
-    private static final List<Sphere> SPHERES = new ArrayList<>();
-    protected static final List<BVHNode> BVH_NODES = new ArrayList<>();
+    public static final List<Sphere> SPHERES = new ArrayList<>();
+    public static final List<BVHNode> BVH_NODES = new ArrayList<>();
 
     private static BufferObject sphereSSBO, bvhSSBO;
 
     private final Material material;
 
+    public float id;
+
     protected float[] data;
-    protected float id;
+    protected AABB bbox;
 
     protected RaytraceModel(Material material) {
         this.material = material;
+    }
+
+    public AABB boundingBox() {
+        return bbox;
     }
 
     public static void addModel(RaytraceModel model) {
@@ -90,8 +96,6 @@ public abstract class RaytraceModel {
         sphereSSBO.uploadData(buffer, GL_STATIC_DRAW);
         MemoryUtil.memFree(buffer);
     }
-
-    protected abstract AABB boundingBox();
 
     private static void putBVHNodesToProgram() {
         FloatBuffer buffer = MemoryUtil.memAllocFloat(BVH_NODES.size() * 8);

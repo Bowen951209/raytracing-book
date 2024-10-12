@@ -5,22 +5,22 @@ import net.bowen.math.Interval;
 import java.nio.FloatBuffer;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Random;
 
 public class BVHNode extends RaytraceModel {
     public static final float MODEL_ID = 0f;
 
-    private static final Random RANDOM = new Random();
-
-    private final RaytraceModel left, right;
-    private final AABB bbox;
+    public final RaytraceModel left, right;
 
     public BVHNode(List<? extends RaytraceModel> objects, int start, int end) {
         super(null);
         BVH_NODES.add(this);
         id = BVH_NODES.size() - 1 + MODEL_ID;
 
-        int axis = RANDOM.nextInt(0, 2);
+        bbox = new AABB();
+        for (int i = start; i < end; i++)
+            bbox.set(bbox, objects.get(i).boundingBox());
+
+        int axis = bbox.longestAxis();
 
         Comparator<RaytraceModel> comparator = (axis == 0) ? BVHNode::boxXCompare
                 : (axis == 1) ? BVHNode::boxYCompare
@@ -40,8 +40,6 @@ public class BVHNode extends RaytraceModel {
             left = new BVHNode(objects, start, mid);
             right = new BVHNode(objects, mid, end);
         }
-
-        bbox = new AABB(left.boundingBox(), right.boundingBox());
     }
 
     public void putToBuffer(FloatBuffer buffer) {
@@ -50,11 +48,6 @@ public class BVHNode extends RaytraceModel {
         buffer.put(bbox.z.min).put(bbox.z.max);
         buffer.put(left.id);
         buffer.put(right.id);
-    }
-
-    @Override
-    protected AABB boundingBox() {
-        return bbox;
     }
 
     private static int boxCompare(RaytraceModel a, RaytraceModel b, int axis) {

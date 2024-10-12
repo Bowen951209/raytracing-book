@@ -29,9 +29,14 @@ public class AABB extends RaytraceModel {
 
     public AABB(AABB box1, AABB box2) {
         super(null);
+        set(box1, box2);
+    }
+
+    public AABB set(AABB box1, AABB box2) {
         x.set(box1.x, box2.x);
         y.set(box1.y, box2.y);
         z.set(box1.z, box2.z);
+        return this;
     }
 
     public Interval axisInterval(int n) {
@@ -40,9 +45,11 @@ public class AABB extends RaytraceModel {
         return x;
     }
 
-    @Override
-    protected AABB boundingBox() {
-        // We should not query a bounding box of a AABB.
-        return null;
+    public int longestAxis() {
+        // Returns the index of the longest axis of the bounding box.
+        if (x.size() > y.size())
+            return x.size() > z.size() ? 0 : 2;
+        else
+            return y.size() > z.size() ? 1 : 2;
     }
 }

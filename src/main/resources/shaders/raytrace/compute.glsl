@@ -32,6 +32,8 @@ vec2 image_size;
 vec2 pixel_coord;
 float rand_factor = u_rand_factor;
 bool should_scatter;
+vec3 albedo;
+float material;
 
 struct Ray {
     vec3 o;     // origin
@@ -139,43 +141,58 @@ vec3 scatter(vec3 ray_in_dir, vec3 normal, bool is_front_face, float material) {
     }
 }
 
-bool isSphere(float index) {
+bool is_sphere(float index) {
     float id = index - int(index);
     return interval_surrounds(Interval(0.001, 0.101), id);
 }
 
 HitRecord traceTroughBVH(Ray ray, Interval ray_t) {
+    int stack[64];
+    int stack_ptr = 0;
+    stack[stack_ptr++] = 0;
     HitRecord hit_record;
     hit_record.hit = false;
 
-    BVHNode node = bvh_nodes[0];
+    while (stack_ptr > 0) {
+        int nodeIndex = stack[--stack_ptr];
+        BVHNode node = bvh_nodes[nodeIndex];
 
-    while(true) {
-        if (!hitAABB(ray, node.bbox, ray_t))
-        return hit_record;
+        if (hitAABB(ray, node.bbox, ray_t)) {
+            if (is_sphere(node.left_idx)) {
+                Sphere sphere = spheres[int(node.left_idx)];
+                HitRecord temp_rec;
+                temp_rec = hit_sphere(ray, sphere, ray_t);
+                if (temp_rec.hit) {
+                    ray_t.max = temp_rec.t;
+                    hit_record = temp_rec;
+                    albedo = sphere.albedo;
+                    material = sphere.material;
+                }
 
-        if (isSphere(node.left_idx)) {
-            HitRecord temp_record = hit_sphere(ray, spheres[int(node.left_idx)], ray_t);
-            if (temp_record.hit) {
-                hit_record = temp_record;
-                ray_t.max = hit_record.t;
+                sphere = spheres[int(node.right_idx)];
+                temp_rec = hit_sphere(ray, sphere, ray_t);
+                if (temp_rec.hit) {
+                    ray_t.max = temp_rec.t;
+                    hit_record = temp_rec;
+                    albedo = sphere.albedo;
+                    material = sphere.material;
+                }
+            } else {
+                int i_left = int(node.left_idx);
+                int i_right = int(node.right_idx);
+
+                bool hit_left = hitAABB(ray, bvh_nodes[i_left].bbox, ray_t);
+                bool hit_right = hitAABB(ray, bvh_nodes[i_right].bbox, ray_t);
+
+                if (hit_left)
+                    stack[stack_ptr++] = i_left;
+                if (hit_right)
+                    stack[stack_ptr++] = i_right;
             }
-        } else {
-            node = bvh_nodes[int(node.left_idx)];
-            continue; // recurse
-        }
-
-        if (isSphere(node.right_idx)) {
-            HitRecord temp_record = hit_sphere(ray, spheres[int(node.right_idx)], ray_t);
-            if (temp_record.hit) {
-                hit_record = temp_record;
-                return hit_record;
-            }
-        } else {
-            node = bvh_nodes[int(node.right_idx)];
-            continue; // recurse
         }
     }
+
+    return hit_record;
 }
 
 vec3 get_norm_coord() {
@@ -211,38 +228,9 @@ vec3 get_color(Ray ray) {
     vec3 color_scale = vec3(1.0);
 
     for (int i = 0; i < max_depth; i++) {
-        HitRecord hit_record;
-        float material;
-        vec3 albedo;
-        bool has_hit_anything = false;
-        Interval ray_t = Interval(0.001, INFINITY);
+        HitRecord hit_record = traceTroughBVH(ray, Interval(0.001, INFINITY));
 
-        for (int j = 0; j < spheres_count / 2; j++) {
-            HitRecord temp_record;
-            Sphere sphere = spheres[int(bvh_nodes[j].left_idx)];
-            temp_record = hit_sphere(ray, sphere, ray_t);
-            if (temp_record.hit) {
-                hit_record = temp_record;
-                material = sphere.material;
-                albedo = sphere.albedo;
-                ray_t.max = temp_record.t;
-                has_hit_anything = true;
-            }
-
-            sphere = spheres[int(bvh_nodes[j].right_idx)];
-            temp_record = hit_sphere(ray, sphere, ray_t);
-            if (temp_record.hit) {
-                hit_record = temp_record;
-                material = sphere.material;
-                albedo = sphere.albedo;
-                ray_t.max = hit_record.t;
-                has_hit_anything = true;
-            }
-        }
-
-
-
-        if (has_hit_anything) {
+        if (hit_record.hit) {
             ray.dir = scatter(ray.dir, hit_record.normal, hit_record.is_front_face, material);
             // The scatter() function will also update the should_scatter global variable.
 
