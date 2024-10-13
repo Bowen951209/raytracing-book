@@ -1,7 +1,6 @@
 struct Ray {
     vec3 o;     // origin
     vec3 dir;   // direction
-    float time; // a factor that is in range [0, 1).
 };
 
 struct HitRecord {
@@ -42,12 +41,12 @@ vec3 get_face_normal(vec3 outward_normal, bool is_front_face) {
     return is_front_face ? outward_normal : -outward_normal;
 }
 
-vec3 sphere_center(vec3 center1, vec3 center_vec, float time) {
+vec3 sphere_center(vec3 center1, vec3 center_vec) {
     return center1 + center_vec * time;
 }
 
 HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t) {
-    vec3 center = sphere_center(sphere.center1, sphere.center_vec, ray.time);
+    vec3 center = sphere_center(sphere.center1, sphere.center_vec);
     vec3 oc = ray.o - center;
     float a = dot(ray.dir, ray.dir);
     float half_b = dot(oc, ray.dir);

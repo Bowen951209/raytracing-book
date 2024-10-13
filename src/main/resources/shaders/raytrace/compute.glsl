@@ -31,6 +31,7 @@ layout(std140, binding = 0) uniform Camera {
 vec2 image_size;
 vec2 pixel_coord;
 float rand_factor = u_rand_factor;
+float time; // a factor that is in range [0, 1).
 bool should_scatter;
 vec3 albedo;
 float material;
@@ -38,7 +39,6 @@ float material;
 struct Ray {
     vec3 o;     // origin
     vec3 dir;   // direction
-    float time; // a factor that is in range [0, 1).
 };
 
 struct HitRecord {
@@ -215,7 +215,6 @@ Ray get_ray(vec3 normal_coord) {
     Ray ray;
     ray.o = (defocus_angle <= 0) ? camera_pos : defocus_disk_sample();;
     ray.dir = normal_coord - ray.o;
-    ray.time = rand();
 
     return ray;
 }
@@ -257,6 +256,7 @@ void main() {
     pixel_coord = gl_GlobalInvocationID.xy;
     ivec2 i_pixel_coord = ivec2(pixel_coord);
     image_size = vec2(imageSize(img_output));
+    time = rand();
 
     // Get the color in the img_ouput object and mix it with the color of this raytrace.
     vec3 color = imageLoad(img_output, i_pixel_coord).rgb;
