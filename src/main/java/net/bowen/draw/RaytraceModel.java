@@ -1,6 +1,6 @@
 package net.bowen.draw;
 
-import net.bowen.draw.material.Material;
+import net.bowen.draw.materials.Material;
 import net.bowen.system.BufferObject;
 import org.lwjgl.system.MemoryUtil;
 

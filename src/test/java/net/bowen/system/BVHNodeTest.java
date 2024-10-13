@@ -4,10 +4,10 @@ import net.bowen.draw.BVHNode;
 import net.bowen.draw.Color;
 import net.bowen.draw.RaytraceModel;
 import net.bowen.draw.Sphere;
-import net.bowen.draw.material.Dielectric;
-import net.bowen.draw.material.Lambertian;
-import net.bowen.draw.material.Material;
-import net.bowen.draw.material.Metal;
+import net.bowen.draw.materials.Dielectric;
+import net.bowen.draw.materials.Lambertian;
+import net.bowen.draw.materials.Material;
+import net.bowen.draw.materials.Metal;
 import org.joml.Vector3f;
 import org.junit.jupiter.api.Test;
 

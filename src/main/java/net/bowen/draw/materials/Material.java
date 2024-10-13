@@ -1,4 +1,4 @@
-package net.bowen.draw.material;
+package net.bowen.draw.materials;
 
 import net.bowen.draw.Color;
 

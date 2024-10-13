@@ -1,4 +1,4 @@
-package net.bowen.draw.material;
+package net.bowen.draw.materials;
 
 public class Dielectric extends Material {
     private final float indexOfRefraction;

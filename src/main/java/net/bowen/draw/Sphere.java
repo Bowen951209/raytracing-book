@@ -1,6 +1,6 @@
 package net.bowen.draw;
 
-import net.bowen.draw.material.Material;
+import net.bowen.draw.materials.Material;
 import org.joml.Vector3f;
 
 public class Sphere extends RaytraceModel {
