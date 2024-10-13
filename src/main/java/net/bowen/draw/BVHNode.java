@@ -9,14 +9,19 @@ import java.util.List;
 public class BVHNode extends RaytraceModel {
     public static final float MODEL_ID = 0f;
 
+    // Left and right children.
     public final RaytraceModel left, right;
 
     public BVHNode(List<? extends RaytraceModel> objects, int start, int end) {
-        super(null);
+        // Add self to the static BVH nodes list.
         BVH_NODES.add(this);
+
+        // Give this instance an id, which can be calculated using the size of BVH_NODES. Also, we want to mark that
+        // this is a BVH node object, not a drawable, so we add the BVH model id.
         id = BVH_NODES.size() - 1 + MODEL_ID;
 
-        bbox = new AABB().empty();
+        // Build the bounding box of the span of source objects.
+        bbox = new AABB();
         for (int i = start; i < end; i++)
             bbox.set(bbox, objects.get(i).boundingBox());
 

@@ -18,6 +18,11 @@ public abstract class RaytraceModel {
 
     private final Material material;
 
+    /**
+     * The id of this model. Number in the integer digit is its index in the list; number in the floating digit is the
+     * model id. For example, id 5.1 stands for sphere at index 5, and id 13.0 stands for BVH node at index 13, in their
+     * model lists respectively.
+     */
     public float id;
 
     protected float[] data;
@@ -27,13 +32,19 @@ public abstract class RaytraceModel {
         this.material = material;
     }
 
+    protected RaytraceModel() {
+        material = null;
+    }
+
     public AABB boundingBox() {
         return bbox;
     }
 
     public static void addModel(RaytraceModel model) {
-        // assume it always is sphere
+        // Since we only have sphere models now, we assume it is always sphere.
         SPHERES.add((Sphere) model);
+
+        // The id can be calculated by the size of the list. And remember we add the model id to the floating point.
         model.id = SPHERES.size() - 1 + Sphere.MODEL_ID;
     }
 
@@ -55,7 +66,7 @@ public abstract class RaytraceModel {
         sphereSSBO.bind();
         putSpheresToProgram();
 
-        // Create BVH nodes
+        // Recursively create BVH nodes. Each node will put itself to the BVH_NODES list.
         new BVHNode(SPHERES, 0, SPHERES.size());
 
         bvhSSBO.bind();
@@ -68,9 +79,7 @@ public abstract class RaytraceModel {
         // - 1 float for radius
         // - 3 floats for albedo (vec3)
         // - 1 float for material
-        FloatBuffer buffer = MemoryUtil.memAllocFloat(SPHERES.size() * 12 + 4);
-        buffer.put(SPHERES.size()); // the length of the models
-        buffer.put(0f).put(0f).put(0f); // paddings
+        FloatBuffer buffer = MemoryUtil.memAllocFloat(SPHERES.size() * 12);
         for (RaytraceModel model : SPHERES) {
             // Center position (vec3)
             buffer.put(model.data[0]).put(model.data[1]).put(model.data[2]); // x, y, z
@@ -98,6 +107,11 @@ public abstract class RaytraceModel {
     }
 
     private static void putBVHNodesToProgram() {
+        // - 2 floats for x interval.
+        // - 2 floats for y interval.
+        // - 2 floats for z interval.
+        // - 1 float for left id.
+        // - 1 float for right id.
         FloatBuffer buffer = MemoryUtil.memAllocFloat(BVH_NODES.size() * 8);
         for (BVHNode bvhNode : BVH_NODES) {
             bvhNode.putToBuffer(buffer);

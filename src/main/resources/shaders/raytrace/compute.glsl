@@ -54,6 +54,9 @@ struct Sphere {
     vec3 center_vec;
     float radius;
     vec3 albedo;
+
+    // The information of the material. Integer didit is the id of the material, and floating digits would sometimes
+    // be the detail information. For example material value of 1.3 is the metal material with fuzz value of 0.3.
     float material;
 };
 
@@ -70,12 +73,14 @@ struct AABB {
 
 struct BVHNode {
     AABB bbox;
-    float left_idx;
-    float right_idx;
+
+    // The left and right children ids. Integer digits is the index of the model in the SSBO array; floating digit is
+    // the model id. For example, 5.1 is the sphere at index 5.
+    float left_id;
+    float right_id;
 };
 
 layout(std430, binding = 0) buffer ModelsBuffer {
-    float spheres_count; // Count of spheres sent in from Java side.
     Sphere spheres[];
 };
 
@@ -89,6 +94,7 @@ layout(std430, binding = 1) buffer BVHBuffer {
 #include <utils/hitting.glsl>
 #include <utils/scatter.glsl>
 
+// The placeholders for the functions in the includes.
 bool interval_surrounds(Interval interval, float x);
 bool is_front_face(vec3 ray_dir, vec3 outward_normal);
 vec3 get_face_normal(vec3 outward_normal, bool is_front_face);
@@ -163,8 +169,9 @@ HitRecord trace_through_bvh(Ray ray, Interval ray_t) {
         node = bvh_nodes[node_idx];
 
         if (hit_aabb(ray, node.bbox, ray_t)) {
-            if (is_sphere(node.left_idx)) {
-                sphere = spheres[int(node.left_idx)];
+            if (is_sphere(node.left_id)) { // if left is sphere, right should also be sphere.
+                // Test left and right spheres.
+                sphere = spheres[int(node.left_id)];
                 for (int i = 0; i < 2; i++) {
                     temp_rec = hit_sphere(ray, sphere, ray_t);
                     if (temp_rec.hit) {
@@ -173,11 +180,11 @@ HitRecord trace_through_bvh(Ray ray, Interval ray_t) {
                         albedo = sphere.albedo;
                         material = sphere.material;
                     }
-                    sphere = spheres[int(node.right_idx)];
+                    sphere = spheres[int(node.right_id)];
                 }
             } else {
-                stack[stack_ptr++] = int(node.left_idx);
-                stack[stack_ptr++] = int(node.right_idx);
+                stack[stack_ptr++] = int(node.left_id);
+                stack[stack_ptr++] = int(node.right_id);
             }
         }
     }

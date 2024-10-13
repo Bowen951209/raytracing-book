@@ -16,11 +16,6 @@ public class Sphere extends RaytraceModel {
 
     public Sphere(Vector3f center1, Vector3f center2, float radius, Material material) {
         super(material);
-        Vector3f center11 = new Vector3f();
-        center11.set(center1);
-        Vector3f center21 = new Vector3f();
-        center21.set(center2);
-
         Vector3f vec12 = new Vector3f(center2).sub(center1);
         data = new float[]{center1.x, center1.y, center1.z, vec12.x, vec12.y, vec12.z, radius};
 
