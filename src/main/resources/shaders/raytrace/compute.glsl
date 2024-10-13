@@ -93,6 +93,7 @@ layout(std430, binding = 1) buffer BVHBuffer {
 #include <utils/random.glsl>
 #include <utils/hitting.glsl>
 #include <utils/scatter.glsl>
+#include <utils/texture.glsl>
 
 // The placeholders for the functions in the includes.
 bool interval_surrounds(Interval interval, float x);
@@ -112,6 +113,7 @@ vec3 pixel_sample_square();
 vec3 lambertian_scatter(vec3 normal);
 vec3 metal_scatter(vec3 ray_in_dir, vec3 normal, float fuzz);
 vec3 refract_scatter(vec3 ray_in_dir, vec3 normal, float eta);
+vec3 checker_board(vec3 p);
 
 // Transform the passed in linear-space color to gamma space using gamma value of 2.
 vec3 linear_to_gamma(vec3 linear_component) {
@@ -154,6 +156,7 @@ bool is_sphere(float index) {
 
 HitRecord trace_through_bvh(Ray ray, Interval ray_t) {
     int node_idx;
+    int sphere_id;
     int stack[64];
     int stack_ptr = 0;
     stack[stack_ptr++] = 0;
@@ -171,16 +174,23 @@ HitRecord trace_through_bvh(Ray ray, Interval ray_t) {
         if (hit_aabb(ray, node.bbox, ray_t)) {
             if (is_sphere(node.left_id)) { // if left is sphere, right should also be sphere.
                 // Test left and right spheres.
-                sphere = spheres[int(node.left_id)];
+                sphere_id = int(node.left_id);
                 for (int i = 0; i < 2; i++) {
+                    sphere = spheres[sphere_id];
                     temp_rec = hit_sphere(ray, sphere, ray_t);
                     if (temp_rec.hit) {
                         ray_t.max = temp_rec.t;
                         hit_record = temp_rec;
-                        albedo = sphere.albedo;
                         material = sphere.material;
+
+                        // hard-code to make the ground sphere have a checker board texture.
+                        if(sphere_id == 1) {
+                            albedo = checker_board(hit_record.p);
+                        } else {
+                            albedo = sphere.albedo;
+                        }
                     }
-                    sphere = spheres[int(node.right_id)];
+                    sphere_id = int(node.right_id);
                 }
             } else {
                 stack[stack_ptr++] = int(node.left_id);
