@@ -87,7 +87,7 @@ Interval axis_interval(int n, AABB aabb) {
     return aabb.x;
 }
 
-bool hitAABB(Ray ray, AABB aabb, Interval ray_t) {
+bool hit_aabb(Ray ray, AABB aabb, Interval ray_t) {
     for (int axis = 0; axis < 3; axis++) {
         Interval ax = axis_interval(axis, aabb);
         float adinv = 1.0 / ray.dir[axis];

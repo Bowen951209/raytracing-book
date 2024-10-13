@@ -22,6 +22,10 @@ public class Interval {
         return set(Math.min(a.min, b.min),  Math.max(a.max, b.max));
     }
 
+    public void empty() {
+        set(Float.MAX_VALUE, -Float.MAX_VALUE);
+    }
+
     public float size() {
         return max - min;
     }

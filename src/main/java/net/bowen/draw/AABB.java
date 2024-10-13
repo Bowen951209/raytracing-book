@@ -39,6 +39,13 @@ public class AABB extends RaytraceModel {
         return this;
     }
 
+    public AABB empty() {
+        x.empty();
+        y.empty();
+        z.empty();
+        return this;
+    }
+
     public Interval axisInterval(int n) {
         if (n == 1) return y;
         if (n == 2) return z;

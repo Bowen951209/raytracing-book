@@ -16,7 +16,7 @@ public class BVHNode extends RaytraceModel {
         BVH_NODES.add(this);
         id = BVH_NODES.size() - 1 + MODEL_ID;
 
-        bbox = new AABB();
+        bbox = new AABB().empty();
         for (int i = start; i < end; i++)
             bbox.set(bbox, objects.get(i).boundingBox());
 
