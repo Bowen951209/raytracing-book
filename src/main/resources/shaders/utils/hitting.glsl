@@ -25,6 +25,12 @@ struct Interval {
     float max;
 };
 
+struct AABB {
+    Interval x;
+    Interval y;
+    Interval z;
+};
+
 bool interval_surrounds(Interval interval, float x);
 
 bool is_front_face(vec3 ray_dir, vec3 outward_normal) {
@@ -73,4 +79,33 @@ HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t) {
         hit_record.normal = get_face_normal(outward_normal, hit_record.is_front_face);
         return hit_record;
     }
+}
+
+Interval axis_interval(int n, AABB aabb) {
+    if (n == 1) return aabb.y;
+    if (n == 2) return aabb.z;
+    return aabb.x;
+}
+
+bool hit_aabb(Ray ray, AABB aabb, Interval ray_t) {
+    for (int axis = 0; axis < 3; axis++) {
+        Interval ax = axis_interval(axis, aabb);
+        float adinv = 1.0 / ray.dir[axis];
+
+        float t0 = (ax.min - ray.o[axis]) * adinv;
+        float t1 = (ax.max - ray.o[axis]) * adinv;
+
+        if (t0 < t1) {
+            if (t0 > ray_t.min) ray_t.min = t0;
+            if (t1 < ray_t.max) ray_t.max = t1;
+        } else {
+            if (t1 > ray_t.min) ray_t.min = t1;
+            if (t0 < ray_t.max) ray_t.max = t0;
+        }
+
+        if (ray_t.max <= ray_t.min)
+            return false;
+    }
+
+    return true;
 }

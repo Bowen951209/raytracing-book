@@ -32,6 +32,8 @@ vec2 image_size;
 vec2 pixel_coord;
 float rand_factor = u_rand_factor;
 bool should_scatter;
+vec3 albedo;
+float material;
 
 struct Ray {
     vec3 o;     // origin
@@ -52,6 +54,9 @@ struct Sphere {
     vec3 center_vec;
     float radius;
     vec3 albedo;
+
+    // The information of the material. Integer didit is the id of the material, and floating digits would sometimes
+    // be the detail information. For example material value of 1.3 is the metal material with fuzz value of 0.3.
     float material;
 };
 
@@ -60,9 +65,27 @@ struct Interval {
     float max;
 };
 
+struct AABB {
+    Interval x;
+    Interval y;
+    Interval z;
+};
+
+struct BVHNode {
+    AABB bbox;
+
+    // The left and right children ids. Integer digits is the index of the model in the SSBO array; floating digit is
+    // the model id. For example, 5.1 is the sphere at index 5.
+    float left_id;
+    float right_id;
+};
+
 layout(std430, binding = 0) buffer ModelsBuffer {
-    float spheres_count; // Count of spheres sent in from Java side.
     Sphere spheres[];
+};
+
+layout(std430, binding = 1) buffer BVHBuffer {
+    BVHNode bvh_nodes[];
 };
 
 // The includes. Must be after the global variables and ssbos because some of the includes use those.
@@ -71,6 +94,7 @@ layout(std430, binding = 0) buffer ModelsBuffer {
 #include <utils/hitting.glsl>
 #include <utils/scatter.glsl>
 
+// The placeholders for the functions in the includes.
 bool interval_surrounds(Interval interval, float x);
 bool is_front_face(vec3 ray_dir, vec3 outward_normal);
 vec3 get_face_normal(vec3 outward_normal, bool is_front_face);
@@ -83,6 +107,7 @@ vec3 rand_vec_in_unit_sphere();
 vec3 rand_unit_vec();
 vec3 rand_on_hemisphere(vec3 normal);
 HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t);
+bool hit_aabb(Ray ray, AABB aabb, Interval ray_t);
 vec3 pixel_sample_square();
 vec3 lambertian_scatter(vec3 normal);
 vec3 metal_scatter(vec3 ray_in_dir, vec3 normal, float fuzz);
@@ -122,6 +147,51 @@ vec3 scatter(vec3 ray_in_dir, vec3 normal, bool is_front_face, float material) {
     }
 }
 
+bool is_sphere(float index) {
+    float id = index - int(index);
+    return interval_surrounds(Interval(0.001, 0.101), id);
+}
+
+HitRecord trace_through_bvh(Ray ray, Interval ray_t) {
+    int node_idx;
+    int stack[64];
+    int stack_ptr = 0;
+    stack[stack_ptr++] = 0;
+
+    BVHNode node;
+    Sphere sphere;
+    HitRecord temp_rec;
+    HitRecord hit_record;
+    hit_record.hit = false;
+
+    while (stack_ptr > 0) {
+        node_idx = stack[--stack_ptr];
+        node = bvh_nodes[node_idx];
+
+        if (hit_aabb(ray, node.bbox, ray_t)) {
+            if (is_sphere(node.left_id)) { // if left is sphere, right should also be sphere.
+                // Test left and right spheres.
+                sphere = spheres[int(node.left_id)];
+                for (int i = 0; i < 2; i++) {
+                    temp_rec = hit_sphere(ray, sphere, ray_t);
+                    if (temp_rec.hit) {
+                        ray_t.max = temp_rec.t;
+                        hit_record = temp_rec;
+                        albedo = sphere.albedo;
+                        material = sphere.material;
+                    }
+                    sphere = spheres[int(node.right_id)];
+                }
+            } else {
+                stack[stack_ptr++] = int(node.left_id);
+                stack[stack_ptr++] = int(node.right_id);
+            }
+        }
+    }
+
+    return hit_record;
+}
+
 vec3 get_norm_coord() {
     float aspect_ratio = image_size.x / image_size.y;
 
@@ -155,22 +225,9 @@ vec3 get_color(Ray ray) {
     vec3 color_scale = vec3(1.0);
 
     for (int i = 0; i < max_depth; i++) {
-        HitRecord hit_record;
-        float material;
-        vec3 albedo;
-        bool has_hit_anything = false;
-        float nearest_so_far = INFINITY;
-        for (int j = 0; j < spheres_count; j++) {
-            hit_record = hit_sphere(ray, spheres[j], Interval(0.001, nearest_so_far));
-            if (hit_record.hit) {
-                material = spheres[j].material;
-                albedo = spheres[j].albedo;
-                nearest_so_far = hit_record.t;
-                has_hit_anything = true;
-            }
-        }
+        HitRecord hit_record = trace_through_bvh(ray, Interval(0.001, INFINITY));
 
-        if (has_hit_anything) {
+        if (hit_record.hit) {
             ray.dir = scatter(ray.dir, hit_record.normal, hit_record.is_front_face, material);
             // The scatter() function will also update the should_scatter global variable.
 
