@@ -113,7 +113,7 @@ vec3 pixel_sample_square();
 vec3 lambertian_scatter(vec3 normal);
 vec3 metal_scatter(vec3 ray_in_dir, vec3 normal, float fuzz);
 vec3 refract_scatter(vec3 ray_in_dir, vec3 normal, float eta);
-vec3 checker_board(vec3 p);
+vec3 checkerboard(vec3 p);
 
 // Transform the passed in linear-space color to gamma space using gamma value of 2.
 vec3 linear_to_gamma(vec3 linear_component) {
@@ -185,7 +185,7 @@ HitRecord trace_through_bvh(Ray ray, Interval ray_t) {
 
                         // hard-code to make the ground sphere have a checker board texture.
                         if(sphere_id == 1) {
-                            albedo = checker_board(hit_record.p);
+                            albedo = checkerboard(hit_record.p);
                         } else {
                             albedo = sphere.albedo;
                         }
