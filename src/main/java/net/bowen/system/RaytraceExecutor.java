@@ -1,5 +1,6 @@
 package net.bowen.system;
 
+import net.bowen.draw.textures.Texture;
 import org.lwjgl.BufferUtils;
 
 import java.nio.FloatBuffer;

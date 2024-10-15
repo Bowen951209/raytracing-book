@@ -1,10 +1,19 @@
-package net.bowen.system;
+package net.bowen.draw.textures;
+
+import net.bowen.system.Deleteable;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.lwjgl.opengl.GL43.*;
 
-import java.nio.ByteBuffer;
+public class Texture extends Deleteable {
+    /**
+     * The list of textures used in the raytrace compute shader.
+     */
+    private static final List<Texture> TEXTURES_IN_COMPUTE = new ArrayList<>();
 
-public class Texture extends Deleteable{
     private final int textureID;
     private final int internalFormat;
     private final int format;
@@ -73,7 +82,33 @@ public class Texture extends Deleteable{
         return height;
     }
 
+    /**
+     * Get the information of the texture. Generally, only integer digits are used, but sometimes, like checkerboard,
+     * store its detail value (in which case is scale), in the float digits.
+     *
+     * @return the id of the texture in {@link #TEXTURES_IN_COMPUTE} list.
+     */
+    public float getId() {
+        int index = TEXTURES_IN_COMPUTE.indexOf(this);
+        if (index == -1)
+            throw new IllegalStateException("Texture not found in TEXTURES list.");
+        return index;
+    }
+
     public static void active(int unit) {
         glActiveTexture(GL_TEXTURE0 + unit);
+    }
+
+
+    /**
+     * Add texture to {@link #TEXTURES_IN_COMPUTE}, the list which stores the textures used in the compute shader.
+     */
+    public static void texturesInComputeAdd(Texture texture) {
+        TEXTURES_IN_COMPUTE.add(texture);
+    }
+
+    public static void bindTexturesInCompute() {
+        for (Texture texture : TEXTURES_IN_COMPUTE)
+            texture.bind();
     }
 }

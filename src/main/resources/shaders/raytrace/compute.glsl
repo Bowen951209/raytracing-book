@@ -9,7 +9,8 @@ const int MATERIAL_LAMBERTIAN = 0;
 const int MATERIAL_METAL = 1;
 const int MATERIAL_DIELECTRIC = 2;
 
-uniform int sample_per_pixel; // Count random.glsl samples for each pixel.
+uniform sampler2D textures[8];
+uniform int sample_per_pixel; // Count of samples for each pixel.
 uniform int max_depth;        // Maximum number of ray bounces into scene.
 uniform float last_color_scale; // The color scale last time dispatch call applied.
 uniform float this_color_scale; // The color scale this time dispatch call applies.
@@ -49,8 +50,12 @@ struct HitRecord {
     float t;
 };
 
+// TODO: Make structs for different model types to avoid memory wastes.
 struct Sphere {
     vec3 center1;
+
+    // The texture information. Integer digits are the texture id; floating digits are the detail information.
+    float texture_id;
     vec3 center_vec;
     float radius;
     vec3 albedo;
@@ -107,13 +112,14 @@ vec3 rand_vec3(float min_val, float max_val);
 vec3 rand_vec_in_unit_sphere();
 vec3 rand_unit_vec();
 vec3 rand_on_hemisphere(vec3 normal);
-HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t);
+HitRecord hit_sphere(Ray ray, vec3 center1, vec3 center_vec, float radius, Interval ray_t);
 bool hit_aabb(Ray ray, AABB aabb, Interval ray_t);
 vec3 pixel_sample_square();
 vec3 lambertian_scatter(vec3 normal);
 vec3 metal_scatter(vec3 ray_in_dir, vec3 normal, float fuzz);
 vec3 refract_scatter(vec3 ray_in_dir, vec3 normal, float eta);
 vec3 checkerboard(vec3 p);
+vec3 texture_color(vec3 p, float id);
 
 // Transform the passed in linear-space color to gamma space using gamma value of 2.
 vec3 linear_to_gamma(vec3 linear_component) {
@@ -151,6 +157,7 @@ vec3 scatter(vec3 ray_in_dir, vec3 normal, bool is_front_face, float material) {
 
 bool is_sphere(float index) {
     float id = index - int(index);
+    // sphere id is 0.1, but float could have precision problem, so extend a small range.
     return interval_surrounds(Interval(0.001, 0.101), id);
 }
 
@@ -177,18 +184,17 @@ HitRecord trace_through_bvh(Ray ray, Interval ray_t) {
                 sphere_id = int(node.left_id);
                 for (int i = 0; i < 2; i++) {
                     sphere = spheres[sphere_id];
-                    temp_rec = hit_sphere(ray, sphere, ray_t);
+                    temp_rec = hit_sphere(ray, sphere.center1, sphere.center_vec, sphere.radius, ray_t);
                     if (temp_rec.hit) {
                         ray_t.max = temp_rec.t;
                         hit_record = temp_rec;
                         material = sphere.material;
 
-                        // hard-code to make the ground sphere have a checker board texture.
-                        if(sphere_id == 1) {
-                            albedo = checkerboard(hit_record.p);
-                        } else {
+                        // If no texture is specified, use albedo values, else get the texture color.
+                        if(sphere.texture_id == -1)
                             albedo = sphere.albedo;
-                        }
+                        else
+                            albedo = texture_color(hit_record.p, sphere.texture_id);
                     }
                     sphere_id = int(node.right_id);
                 }

@@ -75,6 +75,7 @@ public abstract class RaytraceModel {
 
     private static void putSpheresToProgram() {
         // - 3 floats for center (vec3)
+        // - 1 float for material id.
         // - 3 floats for center vector (vec3)
         // - 1 float for radius
         // - 3 floats for albedo (vec3)
@@ -83,7 +84,9 @@ public abstract class RaytraceModel {
         for (RaytraceModel model : SPHERES) {
             // Center position (vec3)
             buffer.put(model.data[0]).put(model.data[1]).put(model.data[2]); // x, y, z
-            buffer.put(0); // padding
+
+            // Material id (float)
+            buffer.put(model.material.getTextureId());
 
             // Center vector (vec3)
             buffer.put(model.data[3]).put(model.data[4]).put(model.data[5]);

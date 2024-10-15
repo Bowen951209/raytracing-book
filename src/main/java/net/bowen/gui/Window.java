@@ -10,6 +10,8 @@ import net.bowen.draw.materials.Dielectric;
 import net.bowen.draw.materials.Lambertian;
 import net.bowen.draw.materials.Material;
 import net.bowen.draw.materials.Metal;
+import net.bowen.draw.textures.CheckerTexture;
+import net.bowen.draw.textures.Texture;
 import net.bowen.system.*;
 import org.joml.Vector3f;
 import org.lwjgl.Version;
@@ -190,7 +192,7 @@ public class Window {
         RaytraceModel.initSSBO();
         Material mat = new Lambertian(0.5f, 0.5f, 0.5f);
         RaytraceModel.addModel(new Sphere(0, -1, 0, 0.5f, mat));
-        Material groundMaterial = new Lambertian(0.5f, 0.5f, 0.5f);
+        Material groundMaterial = new Lambertian(CheckerTexture.create(.2f, .3f, .1f, .9f, .9f, .9f, .32f));
         RaytraceModel.addModel(new Sphere(0, -1000, 0, 1000, groundMaterial));
 
         Random random = new Random();
@@ -268,6 +270,7 @@ public class Window {
      */
     private void drawResult() {
         quadProgram.use();
+        quadTexture.bind();
         screenQuad.draw();
     }
 
@@ -281,8 +284,10 @@ public class Window {
             imGuiGl3.newFrame();
             ImGui.newFrame();
 
-            if (!raytraceExecutor.sampleComplete())
+            if (!raytraceExecutor.sampleComplete()) {
+                Texture.bindTexturesInCompute();
                 raytraceExecutor.raytrace();
+            }
 
             drawResult();
             guiRenderer.draw();
