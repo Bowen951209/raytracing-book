@@ -67,7 +67,7 @@ public class Window {
         long startTime = System.currentTimeMillis();
         initGLFW();
         initShaderPrograms();
-        initTextures();
+        initQuadTexture();
         initModels();
         initRaytraceExecutor();
         initImGui();
@@ -248,7 +248,7 @@ public class Window {
         camera.init();
     }
 
-    private void initTextures() {
+    private void initQuadTexture() {
         quadTexture = new Texture(width, height, GL_RGBA32F, GL_RGBA, GL_FLOAT, null);
         quadTexture.bind();
         quadTexture.bindAsImage(0, GL_WRITE_ONLY, GL_RGBA32F);
