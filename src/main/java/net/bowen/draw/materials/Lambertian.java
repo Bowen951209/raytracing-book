@@ -12,7 +12,6 @@ public class Lambertian extends Material{
         super(LAMBERTIAN, color);
     }
 
-    // TODO: Make the constructors reusable.
     public Lambertian(Texture texture) {
         super(LAMBERTIAN, texture);
     }
