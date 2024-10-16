@@ -4,7 +4,6 @@ bool is_checker(int tex_idx) {
 }
 
 vec3 checkerboard(vec3 p, float scale, int tex_idx) {
-    // (for hard-coded properties now.)
     float inv_scale = 1.0 / scale;
 
     ivec3 ip = ivec3(p * inv_scale);

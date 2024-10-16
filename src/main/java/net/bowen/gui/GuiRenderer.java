@@ -14,6 +14,7 @@ public class GuiRenderer implements GuiLayer {
         raytraceExecutor = window.getRaytraceExecutor();
 
         multiSampleSliderSlide();
+        maxBounceSliderSlide();
     }
 
     @Override

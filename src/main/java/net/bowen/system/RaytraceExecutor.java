@@ -80,6 +80,7 @@ public class RaytraceExecutor {
     }
 
     public void raytrace() {
+        Texture.bindTexturesInCompute();
         // Set the start time if it's the very first raytrace.
         if (samples == 0)
             startTime = (int) System.currentTimeMillis();

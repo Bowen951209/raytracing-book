@@ -32,7 +32,6 @@ public class Window {
     private final int sceneId;
     private final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
-    private final Camera camera = new Camera();
 
     private long windowHandle;
     private int width, height;
@@ -40,6 +39,7 @@ public class Window {
     private Texture quadTexture;
     private GuiRenderer guiRenderer;
     private RaytraceExecutor raytraceExecutor;
+    private Scene scene;
 
     ShaderProgram quadProgram, computeProgram;
 
@@ -59,17 +59,16 @@ public class Window {
     private void init() {
         System.out.println("Initializing...");
         long startTime = System.currentTimeMillis();
+
         initGLFW();
         initShaderPrograms();
         initQuadTexture();
         initModels();
         initRaytraceExecutor();
         initImGui();
+
         float initTime = (System.currentTimeMillis() - startTime) / 1000f;
         System.out.println("Initialization completed in " + initTime + " sec.");
-
-        // Upload the max depth uniform
-        guiRenderer.maxBounceSliderSlide();
 
         // Make the window visible
         glfwShowWindow(windowHandle);
@@ -110,9 +109,7 @@ public class Window {
 
             // Resize textures and camera.
             quadTexture.resize(width, height);
-            camera.setImageSize(width, height);
-            camera.calculateProperties();
-            camera.putToShaderProgram();
+            scene.updateCamera(width, height);
 
             // Reset raytrace state.
             raytraceExecutor.resetCompleteState();
@@ -180,22 +177,15 @@ public class Window {
     }
 
     private void initModels() {
-        // Drawable models:
         screenQuad = new Quad(-1.0f, 1.0f, 2.0f, 2.0f);
-
-        RaytraceModel.initSSBOs();
-
-        Scenes.load(sceneId, camera);
-
-        camera.setImageSize(width, height);
-        camera.init();
+        scene = new Scene(sceneId, width, height, computeProgram);
     }
 
     private void initQuadTexture() {
         quadTexture = new Texture(width, height, GL_RGBA32F, GL_RGBA, GL_FLOAT, null);
+        Texture.active(0);
         quadTexture.bind();
         quadTexture.bindAsImage(0, GL_WRITE_ONLY, GL_RGBA32F);
-        Texture.active(0);
 
         int texLocation = quadProgram.getUniformLocation("tex_sampler");
         glUniform1i(texLocation, 0); // 0 corresponds to GL_TEXTURE0
@@ -213,6 +203,7 @@ public class Window {
      */
     private void drawResult() {
         quadProgram.use();
+        Texture.active(0);
         quadTexture.bind();
         screenQuad.draw();
     }
@@ -227,10 +218,8 @@ public class Window {
             imGuiGl3.newFrame();
             ImGui.newFrame();
 
-            if (!raytraceExecutor.sampleComplete()) {
-                Texture.bindTexturesInCompute();
+            if (!raytraceExecutor.sampleComplete())
                 raytraceExecutor.raytrace();
-            }
 
             drawResult();
             guiRenderer.draw();

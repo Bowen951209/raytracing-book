@@ -1,8 +1,11 @@
 package net.bowen.draw.textures;
 
 import net.bowen.system.Deleteable;
+import net.bowen.system.ShaderProgram;
+import org.lwjgl.system.MemoryUtil;
 
 import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -88,7 +91,7 @@ public class Texture extends Deleteable {
      *
      * @return the id of the texture in {@link #TEXTURES_IN_COMPUTE} list.
      */
-    public float getId() {
+    public float getValue() {
         int index = TEXTURES_IN_COMPUTE.indexOf(this);
         if (index == -1)
             throw new IllegalStateException("Texture not found in TEXTURES list.");
@@ -107,8 +110,21 @@ public class Texture extends Deleteable {
         TEXTURES_IN_COMPUTE.add(texture);
     }
 
+    public static void putTextureIndices(ShaderProgram program) {
+        IntBuffer buffer = MemoryUtil.memAllocInt(TEXTURES_IN_COMPUTE.size());
+        for (int i = 0; i < TEXTURES_IN_COMPUTE.size(); i++)
+            buffer.put(i);
+
+        buffer.flip();
+
+        program.setUniform1iv("textures", buffer);
+        MemoryUtil.memFree(buffer);
+    }
+
     public static void bindTexturesInCompute() {
-        for (Texture texture : TEXTURES_IN_COMPUTE)
+        for (Texture texture : TEXTURES_IN_COMPUTE) {
+            active((int) texture.getValue());
             texture.bind();
+        }
     }
 }

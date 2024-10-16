@@ -16,8 +16,8 @@ public class CheckerTexture extends Texture {
     }
 
     @Override
-    public float getId() {
-        return super.getId() + scale;
+    public float getValue() {
+        return super.getValue() + scale;
     }
 
     public static CheckerTexture create(float r1, float g1, float b1, float r2, float g2, float b2, float scale) {

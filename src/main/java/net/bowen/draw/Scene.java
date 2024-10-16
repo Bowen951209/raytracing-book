@@ -6,20 +6,34 @@ import net.bowen.draw.materials.Material;
 import net.bowen.draw.materials.Metal;
 import net.bowen.draw.textures.CheckerTexture;
 import net.bowen.draw.textures.Texture;
+import net.bowen.system.ShaderProgram;
 import org.joml.Vector3f;
 
 import java.util.Random;
 
-public final class Scenes {
-    public static void load(int sceneID, Camera camera) {
+public final class Scene {
+    public final Camera camera = new Camera();
+
+    public Scene(int sceneID, int initImageWidth, int initImageHeight, ShaderProgram computeProgram) {
+        RaytraceModel.initSSBOs();
+
         switch (sceneID) {
-            case 0 -> bouncingSpheres(camera);
-            case 1 -> checkerSpheres(camera);
+            case 0 -> bouncingSpheres();
+            case 1 -> checkerSpheres();
         }
+
+        Texture.putTextureIndices(computeProgram);
+        camera.setImageSize(initImageWidth, initImageHeight);
         camera.init();
     }
 
-    public static void bouncingSpheres(Camera camera) {
+    public void updateCamera(int imageWidth, int imageHeight) {
+        camera.setImageSize(imageWidth, imageHeight);
+        camera.calculateProperties();
+        camera.putToShaderProgram();
+    }
+
+    private void bouncingSpheres() {
         Material mat = new Lambertian(0.5f, 0.5f, 0.5f);
         RaytraceModel.addModel(new Sphere(0, -1, 0, 0.5f, mat));
         Material groundMaterial = new Lambertian(CheckerTexture.create(.2f, .3f, .1f, .9f, .9f, .9f, .32f));
@@ -74,11 +88,12 @@ public final class Scenes {
         camera.setFocusDist(10);
     }
 
-    public static void checkerSpheres(Camera camera) {
-        Texture checker = CheckerTexture.create(.2f, .3f, .1f, .9f, .9f, .9f, 0.32f);
+    private void checkerSpheres() {
+        Texture checker1 = CheckerTexture.create(.2f, .3f, .1f, .9f, .9f, .9f, 0.32f);
+        Texture checker2 = CheckerTexture.create(.5f, .2f, .1f, .9f, .9f, .9f, 0.32f);
 
-        RaytraceModel.addModel(new Sphere(0,-10, 0, 10, new Lambertian(checker)));
-        RaytraceModel.addModel(new Sphere(0, 10, 0, 10, new Lambertian(checker)));
+        RaytraceModel.addModel(new Sphere(0,-10, 0, 10, new Lambertian(checker1)));
+        RaytraceModel.addModel(new Sphere(0, 10, 0, 10, new Lambertian(checker2)));
 
         RaytraceModel.putModelsToProgram();
 

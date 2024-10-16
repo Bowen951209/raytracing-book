@@ -42,6 +42,6 @@ public abstract class Material {
      * @return The texture index in integer digits, and the detail information in float digits.
      */
     public float getTextureId() {
-        return texture != null ? texture.getId() + 1 : -1;
+        return texture != null ? texture.getValue() + 1 : -1;
     }
 }
