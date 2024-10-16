@@ -48,7 +48,7 @@ public abstract class RaytraceModel {
         model.id = SPHERES.size() - 1 + Sphere.MODEL_ID;
     }
 
-    public static void initSSBO() {
+    public static void initSSBOs() {
         // Init the ssbo we want to pass data to program through.
 
         // Spheres:
