@@ -32,7 +32,6 @@ vec2 image_size;
 vec2 pixel_coord;
 float rand_factor = u_rand_factor;
 float time; // a factor that is in range [0, 1).
-bool should_scatter;
 vec3 albedo;
 float material;
 
@@ -42,7 +41,6 @@ struct Ray {
 };
 
 struct HitRecord {
-    bool hit;
     bool is_front_face;
     vec3 p;
     vec3 normal;
@@ -106,12 +104,12 @@ vec3 rand_vec3(float min_val, float max_val);
 vec3 rand_vec_in_unit_sphere();
 vec3 rand_unit_vec();
 vec3 rand_on_hemisphere(vec3 normal);
-HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t);
+bool hit_sphere(Ray ray, Sphere sphere, Interval ray_t, out HitRecord hit_record);
 bool hit_aabb(Ray ray, AABB aabb, Interval ray_t);
 vec3 pixel_sample_square();
 vec3 lambertian_scatter(vec3 normal);
-vec3 metal_scatter(vec3 ray_in_dir, vec3 normal, float fuzz);
-vec3 refract_scatter(vec3 ray_in_dir, vec3 normal, float eta);
+void metal_scatter(inout vec3 ray_dir, vec3 normal, float fuzz);
+void refract_scatter(inout vec3 ray_dir, vec3 normal, float eta);
 
 // Transform the passed in linear-space color to gamma space using gamma value of 2.
 vec3 linear_to_gamma(vec3 linear_component) {
@@ -124,25 +122,24 @@ bool near_zero(vec3 v) {
     return abs(v.x) < s && abs(v.y) < s && abs(v.z) < s;
 }
 
-vec3 scatter(vec3 ray_in_dir, vec3 normal, bool is_front_face, float material) {
+bool scatter(inout vec3 ray_dir, vec3 normal, bool is_front_face, float material) {
     switch (int(material)) {
         case MATERIAL_LAMBERTIAN: {
-            should_scatter = true;
-            return lambertian_scatter(normal);
+            ray_dir = lambertian_scatter(normal);
+            return true;
         }
         case MATERIAL_METAL: {
             // The fuzz value is set in the floating point of the material variable, so:
             float fuzz = material - MATERIAL_METAL;
-            vec3 scattered_dir = metal_scatter(ray_in_dir, normal, fuzz);
-            should_scatter = dot(scattered_dir, normal) > 0.0; // check if the ray is absorbed by the metal
-            return scattered_dir;
+            metal_scatter(ray_dir, normal, fuzz);
+            return dot(ray_dir, normal) > 0.0; // check if the ray is absorbed by the metal
         }
         case MATERIAL_DIELECTRIC: {
             // The index of refraction is set from the 2nd digit in the floating point, so:
             float eta = (material - MATERIAL_DIELECTRIC) * 10.0;
             if(is_front_face) eta = 1.0 / eta;
-            should_scatter = true;
-            return refract_scatter(ray_in_dir, normal, eta);
+            refract_scatter(ray_dir, normal, eta);
+            return true;
         }
     }
 }
@@ -152,7 +149,8 @@ bool is_sphere(float index) {
     return interval_surrounds(Interval(0.001, 0.101), id);
 }
 
-HitRecord trace_through_bvh(Ray ray, Interval ray_t) {
+bool trace_through_bvh(Ray ray, Interval ray_t, out HitRecord hit_record) {
+    bool has_hit = false;
     int node_idx;
     int stack[64];
     int stack_ptr = 0;
@@ -160,9 +158,6 @@ HitRecord trace_through_bvh(Ray ray, Interval ray_t) {
 
     BVHNode node;
     Sphere sphere;
-    HitRecord temp_rec;
-    HitRecord hit_record;
-    hit_record.hit = false;
 
     while (stack_ptr > 0) {
         node_idx = stack[--stack_ptr];
@@ -173,10 +168,9 @@ HitRecord trace_through_bvh(Ray ray, Interval ray_t) {
                 // Test left and right spheres.
                 sphere = spheres[int(node.left_id)];
                 for (int i = 0; i < 2; i++) {
-                    temp_rec = hit_sphere(ray, sphere, ray_t);
-                    if (temp_rec.hit) {
-                        ray_t.max = temp_rec.t;
-                        hit_record = temp_rec;
+                    if (hit_sphere(ray, sphere, ray_t, hit_record)) {
+                        has_hit = true;
+                        ray_t.max = hit_record.t;
                         albedo = sphere.albedo;
                         material = sphere.material;
                     }
@@ -189,7 +183,7 @@ HitRecord trace_through_bvh(Ray ray, Interval ray_t) {
         }
     }
 
-    return hit_record;
+    return has_hit;
 }
 
 vec3 get_norm_coord() {
@@ -223,14 +217,10 @@ vec3 get_color(Ray ray) {
     vec3 color = vec3(0.0);
     vec3 color_scale = vec3(1.0);
 
+    HitRecord hit_record;
     for (int i = 0; i < max_depth; i++) {
-        HitRecord hit_record = trace_through_bvh(ray, Interval(0.001, INFINITY));
-
-        if (hit_record.hit) {
-            ray.dir = scatter(ray.dir, hit_record.normal, hit_record.is_front_face, material);
-            // The scatter() function will also update the should_scatter global variable.
-
-            if(should_scatter) {
+        if (trace_through_bvh(ray, Interval(0.001, INFINITY), hit_record)) {
+            if(scatter(ray.dir, hit_record.normal, hit_record.is_front_face, material)) {
                 // Catch degenerate scatter direction.
                 if (near_zero(ray.dir)) {
                     ray.dir = hit_record.normal;
@@ -243,8 +233,8 @@ vec3 get_color(Ray ray) {
             }
         }
 
-        vec3 unit_direction = normalize(ray.dir);
-        float a = 0.5 * (unit_direction.y + 1.0);
+        ray.dir = normalize(ray.dir);
+        float a = 0.5 * (ray.dir.y + 1.0);
         color += ((1.0 - a) * vec3(1.0) + a * vec3(0.5, 0.7, 1.0)) * color_scale;
         break;
     }
