@@ -13,9 +13,15 @@ struct HitRecord {
 
 struct Sphere {
     vec3 center1;
+
+    // The texture information. Integer digits are the texture id; floating digits are the detail information.
+    float texture_id;
     vec3 center_vec;
     float radius;
     vec3 albedo;
+
+    // The information of the material. Integer didit is the id of the material, and floating digits would sometimes
+    // be the detail information. For example material value of 1.3 is the metal material with fuzz value of 0.3.
     float material;
 };
 
@@ -45,12 +51,12 @@ vec3 sphere_center(vec3 center1, vec3 center_vec) {
     return center1 + center_vec * time;
 }
 
-HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t) {
-    vec3 center = sphere_center(sphere.center1, sphere.center_vec);
+HitRecord hit_sphere(Ray ray, vec3 center1, vec3 center_vec, float radius, Interval ray_t) {
+    vec3 center = sphere_center(center1, center_vec);
     vec3 oc = ray.o - center;
     float a = dot(ray.dir, ray.dir);
     float half_b = dot(oc, ray.dir);
-    float c = dot(oc, oc) - sphere.radius * sphere.radius;
+    float c = dot(oc, oc) - radius * radius;
     float discriminant = half_b * half_b - a * c;
 
     HitRecord hit_record;
@@ -73,7 +79,7 @@ HitRecord hit_sphere(Ray ray, Sphere sphere, Interval ray_t) {
         hit_record.hit = true;
         hit_record.t = root;
         hit_record.p = ray.o + ray.dir * hit_record.t;
-        vec3 outward_normal = (hit_record.p - center) / sphere.radius;
+        vec3 outward_normal = (hit_record.p - center) / radius;
         hit_record.is_front_face = is_front_face(ray.dir, outward_normal);
         hit_record.normal = get_face_normal(outward_normal, hit_record.is_front_face);
         return hit_record;

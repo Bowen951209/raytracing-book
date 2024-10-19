@@ -1,5 +1,6 @@
 package net.bowen.system;
 
+import net.bowen.draw.textures.Texture;
 import org.lwjgl.BufferUtils;
 
 import java.nio.FloatBuffer;
@@ -79,6 +80,7 @@ public class RaytraceExecutor {
     }
 
     public void raytrace() {
+        Texture.bindTexturesInCompute();
         // Set the start time if it's the very first raytrace.
         if (samples == 0)
             startTime = (int) System.currentTimeMillis();
