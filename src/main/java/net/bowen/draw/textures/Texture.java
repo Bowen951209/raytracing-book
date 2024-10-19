@@ -102,7 +102,6 @@ public class Texture extends Deleteable {
         glActiveTexture(GL_TEXTURE0 + unit);
     }
 
-
     /**
      * Add texture to {@link #TEXTURES_IN_COMPUTE}, the list which stores the textures used in the compute shader.
      */

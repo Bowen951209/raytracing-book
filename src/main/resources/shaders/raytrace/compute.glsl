@@ -94,6 +94,7 @@ layout(std430, binding = 1) buffer BVHBuffer {
 };
 
 // The includes. Must be after the global variables and ssbos because some of the includes use those.
+#include <utils/math.glsl>
 #include <utils/interval.glsl>
 #include <utils/random.glsl>
 #include <utils/hitting.glsl>

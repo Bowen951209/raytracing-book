@@ -5,6 +5,7 @@ import net.bowen.draw.materials.Lambertian;
 import net.bowen.draw.materials.Material;
 import net.bowen.draw.materials.Metal;
 import net.bowen.draw.textures.CheckerTexture;
+import net.bowen.draw.textures.ImageTexture;
 import net.bowen.draw.textures.Texture;
 import net.bowen.system.ShaderProgram;
 import org.joml.Vector3f;
@@ -20,6 +21,7 @@ public final class Scene {
         switch (sceneID) {
             case 0 -> bouncingSpheres();
             case 1 -> checkerSpheres();
+            case 2 -> earth();
         }
 
         Texture.putTextureIndices(computeProgram);
@@ -92,14 +94,28 @@ public final class Scene {
         Texture checker1 = CheckerTexture.create(.2f, .3f, .1f, .9f, .9f, .9f, 0.32f);
         Texture checker2 = CheckerTexture.create(.5f, .2f, .1f, .9f, .9f, .9f, 0.32f);
 
-        RaytraceModel.addModel(new Sphere(0,-10, 0, 10, new Lambertian(checker1)));
+        RaytraceModel.addModel(new Sphere(0, -10, 0, 10, new Lambertian(checker1)));
         RaytraceModel.addModel(new Sphere(0, 10, 0, 10, new Lambertian(checker2)));
 
         RaytraceModel.putModelsToProgram();
 
         camera.setVerticalFOV(20);
-        camera.setLookFrom(13,2,3);
-        camera.setLookAt(0,0,0);
+        camera.setLookFrom(13, 2, 3);
+        camera.setLookAt(0, 0, 0);
+        camera.setDefocusAngle(0);
+    }
+
+    private void earth() {
+        Texture earthTexture = ImageTexture.create("textures/earthmap.jpg");
+        Material earthSurface = new Lambertian(earthTexture);
+        Sphere globe = new Sphere(0, 0, 0, 2, earthSurface);
+
+        RaytraceModel.addModel(globe);
+        RaytraceModel.putModelsToProgram();
+
+        camera.setVerticalFOV(20);
+        camera.setLookFrom(0, 0, 12);
+        camera.setLookAt(0, 0, 0);
         camera.setDefocusAngle(0);
     }
 }

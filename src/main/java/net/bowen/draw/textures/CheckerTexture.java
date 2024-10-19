@@ -33,7 +33,7 @@ public class CheckerTexture extends Texture {
         CheckerTexture instance = new CheckerTexture(buffer, scale);
         MemoryUtil.memFree(buffer);
 
-        Texture.texturesInComputeAdd(instance);
+        texturesInComputeAdd(instance);
         return instance;
     }
 }
