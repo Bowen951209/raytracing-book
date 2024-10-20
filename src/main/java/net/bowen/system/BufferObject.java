@@ -3,6 +3,7 @@ package net.bowen.system;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 
+import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
@@ -32,6 +33,11 @@ public class BufferObject extends Deleteable {
 
     // Upload vertex data to the GPU
     public void uploadData(FloatBuffer data, int usage) {
+        glBufferData(bufferType, data, usage);
+    }
+
+    // Upload vertex data to the GPU
+    public void uploadData(ByteBuffer data, int usage) {
         glBufferData(bufferType, data, usage);
     }
 

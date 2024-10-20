@@ -1,17 +1,26 @@
 package net.bowen.draw.materials;
 
 public class Dielectric extends Material {
+    private static final float MIN_IOR = 1.0f;
+    private static final float MAX_IOR = 2.5f;
+
+
     private final float indexOfRefraction;
+
     public Dielectric(float indexOfRefraction) {
         super(DIELECTRIC, 1.0f, 1.0f, 1.0f);
         this.indexOfRefraction = indexOfRefraction;
     }
 
     @Override
-    public float getValue() {
-        // The floating point digits are the indexOfRefraction value. And because the value may be bigger than 1, so we
-        // move it to the next digit to prevent the carry. For example, indexOfRefraction value of 1.5 will be
-        // represented as 2.15, where 2 is the id of the dielectric material.
-        return DIELECTRIC + indexOfRefraction * 0.1f;
+    public int getValue() {
+        // Normalize the IOR to [0, 1]
+        float normalizedIOR = (indexOfRefraction - MIN_IOR) / (MAX_IOR - MIN_IOR);
+
+        // Quantize the IOR to fit in 16 bits (range 0-65535)
+        int iorQuantized = (int) (normalizedIOR * 65535.0f);
+
+        // Pack the materialID (upper 16 bits) and iorQuantized (lower 16 bits) into a 32-bit integer
+        return super.getValue() | (iorQuantized & 0xFFFF);
     }
 }

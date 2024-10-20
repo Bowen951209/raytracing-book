@@ -16,8 +16,12 @@ public class CheckerTexture extends Texture {
     }
 
     @Override
-    public float getValue() {
-        return super.getValue() + scale;
+    public int getValue() {
+        // Quantize the scale value (assuming scale is in the range [0, 1])
+        int scaleQuantized = (int) (scale * 65535.0f); // Quantize float to 16 bits (range 0-65535)
+
+        // Pack the texture ID (16 bits) and scaleQuantized (16 bits) into a single 32-bit integer
+        return super.getValue() | (scaleQuantized & 0xFFFF);
     }
 
     public static CheckerTexture create(float r1, float g1, float b1, float r2, float g2, float b2, float scale) {

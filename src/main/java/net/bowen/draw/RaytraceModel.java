@@ -4,7 +4,7 @@ import net.bowen.draw.materials.Material;
 import net.bowen.system.BufferObject;
 import org.lwjgl.system.MemoryUtil;
 
-import java.nio.FloatBuffer;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,12 +18,7 @@ public abstract class RaytraceModel {
 
     private final Material material;
 
-    /**
-     * The id of this model. Number in the integer digit is its index in the list; number in the floating digit is the
-     * model id. For example, id 5.1 stands for sphere at index 5, and id 13.0 stands for BVH node at index 13, in their
-     * model lists respectively.
-     */
-    public float id;
+    public int indexInList;
 
     protected float[] data;
     protected AABB bbox;
@@ -45,7 +40,7 @@ public abstract class RaytraceModel {
         SPHERES.add((Sphere) model);
 
         // The id can be calculated by the size of the list. And remember we add the model id to the floating point.
-        model.id = SPHERES.size() - 1 + Sphere.MODEL_ID;
+        model.indexInList = SPHERES.size() - 1;
     }
 
     public static void initSSBOs() {
@@ -75,30 +70,33 @@ public abstract class RaytraceModel {
 
     private static void putSpheresToProgram() {
         // - 3 floats for center (vec3)
-        // - 1 float for material id.
+        // - 1 int for material id.
         // - 3 floats for center vector (vec3)
         // - 1 float for radius
         // - 3 floats for albedo (vec3)
         // - 1 float for material
-        FloatBuffer buffer = MemoryUtil.memAllocFloat(SPHERES.size() * 12);
+        ByteBuffer buffer = MemoryUtil.memAlloc(SPHERES.size() * 12 * Byte.SIZE);
         for (RaytraceModel model : SPHERES) {
             // Center position (vec3)
-            buffer.put(model.data[0]).put(model.data[1]).put(model.data[2]); // x, y, z
+            buffer.putFloat(model.data[0]).putFloat(model.data[1]).putFloat(model.data[2]); // x, y, z
 
-            // Material id (float)
-            buffer.put(model.material.getTextureId());
+            // Material id.
+            buffer.putInt(model.material.getTextureValue());
 
             // Center vector (vec3)
-            buffer.put(model.data[3]).put(model.data[4]).put(model.data[5]);
+            buffer.putFloat(model.data[3]).putFloat(model.data[4]).putFloat(model.data[5]);
 
             // Radius (float)
-            buffer.put(model.data[6]);
+            buffer.putFloat(model.data[6]);
 
             // Albedo (vec3)
-            buffer.put(model.material.getAlbedo()); // r, g, b
+            float[] albedo = model.material.getAlbedo();
+            buffer.putFloat(albedo[0]); // r
+            buffer.putFloat(albedo[1]); // g
+            buffer.putFloat(albedo[2]); // b
 
-            // Material (float)
-            buffer.put(model.material.getValue());
+            // Material (int)
+            buffer.putInt(model.material.getValue());
         }
         buffer.flip();
 
@@ -115,7 +113,7 @@ public abstract class RaytraceModel {
         // - 2 floats for z interval.
         // - 1 float for left id.
         // - 1 float for right id.
-        FloatBuffer buffer = MemoryUtil.memAllocFloat(BVH_NODES.size() * 8);
+        ByteBuffer buffer = MemoryUtil.memAlloc(BVH_NODES.size() * 8 * Byte.SIZE);
         for (BVHNode bvhNode : BVH_NODES) {
             bvhNode.putToBuffer(buffer);
         }

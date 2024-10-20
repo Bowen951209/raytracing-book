@@ -27,11 +27,12 @@ public abstract class Material {
         this.texture = texture;
     }
 
-    public float getValue() {
-        // The material value is stored in a strange form of float because I want to keep the memory arrangement in
-        // openGL simple. Each material has the integer digit for its material id, and the floating points for its
-        // special properties. For example, metal material has its floating point as the fuzz value.
-        return materialId;
+    /**
+     * @return A packed value where upper 16 bits is the material id, and the lower 16 bits is whatever data a type
+     * of texture want to store. For example, metal stores its fuzz value in the lower 16 bits.
+     */
+    public int getValue() {
+        return materialId << 16;
     }
 
     public float[] getAlbedo() {
@@ -39,9 +40,10 @@ public abstract class Material {
     }
 
     /**
-     * @return The texture index in integer digits, and the detail information in float digits.
+     * @return The packed int of texture.
+     * @see Texture#getValue()
      */
-    public float getTextureId() {
+    public int getTextureValue() {
         return texture != null ? texture.getValue() + 1 : -1;
     }
 }
