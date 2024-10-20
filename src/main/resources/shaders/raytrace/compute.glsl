@@ -111,7 +111,7 @@ vec3 rand_vec3(float min_val, float max_val);
 vec3 rand_vec_in_unit_sphere();
 vec3 rand_unit_vec();
 vec3 rand_on_hemisphere(vec3 normal);
-bool hit_sphere(Ray ray, vec3 center1, vec3 center_vec, float radius, Interval ray_t, out HitRecord hit_record);
+bool hit_sphere(Ray ray, vec3 center1, vec3 center_vec, float radius, Interval ray_t, inout HitRecord hit_record);
 bool hit_aabb(Ray ray, AABB aabb, Interval ray_t);
 vec3 pixel_sample_square();
 vec3 lambertian_scatter(vec3 normal);
@@ -160,7 +160,6 @@ bool is_sphere(float index) {
 }
 
 bool trace_through_bvh(Ray ray, Interval ray_t, out HitRecord hit_record) {
-    bool has_hit = false;
     int node_idx;
     int sphere_idx;
     int stack[64];
@@ -169,6 +168,7 @@ bool trace_through_bvh(Ray ray, Interval ray_t, out HitRecord hit_record) {
 
     BVHNode node;
     Sphere sphere;
+    bool has_hit = false;
 
     while (stack_ptr > 0) {
         node_idx = stack[--stack_ptr];
@@ -180,10 +180,10 @@ bool trace_through_bvh(Ray ray, Interval ray_t, out HitRecord hit_record) {
                 sphere_idx = int(node.left_id);
                 sphere = spheres[sphere_idx];
                 for (int i = 0; i < 2; i++) {
+                    sphere = spheres[sphere_id];
                     if (hit_sphere(ray, sphere.center1, sphere.center_vec, sphere.radius, ray_t, hit_record)) {
                         has_hit = true;
                         ray_t.max = hit_record.t;
-                        albedo = sphere.albedo;
                         material = sphere.material;
 
                         // If no texture is specified, use albedo values, else get the texture color.
@@ -235,8 +235,9 @@ vec3 get_color(Ray ray) {
     vec3 color = vec3(0.0);
     vec3 color_scale = vec3(1.0);
 
-    HitRecord hit_record;
     for (int i = 0; i < max_depth; i++) {
+        HitRecord hit_record;
+
         if (trace_through_bvh(ray, Interval(0.001, INFINITY), hit_record)) {
             if(scatter(ray.dir, hit_record.normal, hit_record.is_front_face, material)) {
                 // Catch degenerate scatter direction.
