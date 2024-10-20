@@ -2,7 +2,7 @@ package net.bowen.draw.materials;
 
 import net.bowen.draw.Color;
 
-public class Metal extends Material{
+public class Metal extends Material {
     private final float fuzz;
 
     /**
@@ -26,9 +26,11 @@ public class Metal extends Material{
     }
 
     @Override
-    public float getValue() {
-        // The floating point digits are the fuzz value. For example, metal material with fuzz value of 0.3 will
-        // be represented as 1.3, where 1 is the id of the metal material.
-        return materialId + fuzz;
+    public int getValue() {
+        // Quantize the fuzz value (assuming fuzz is in the range [0, 1])
+        int fuzzQuantized = (int) (fuzz * 65535.0f); // Quantize float to 16 bits (range 0-65535)
+
+        // Pack the material ID (16 bits) and fuzzQuantized (16 bits) into a single 32-bit integer
+        return super.getValue() | (fuzzQuantized & 0xFFFF);
     }
 }

@@ -26,9 +26,15 @@ vec2 get_sphere_uv(vec3 p) {
     return vec2(phi / (2.0 * PI), theta / PI);
 }
 
-vec3 texture_color(vec3 p, float id) {
-    int tex_idx = int(id);
-    float detail_val = id - tex_idx;
+vec3 texture_color(vec3 p, int id) {
+    // Extract texture index in upper 16 bits.
+    int tex_idx = (id >> 16) & 0xFFFF;
+
+    // Extract detail value from the lower 16 bits
+    int detail_quantized = id & 0xFFFF;
+
+    // Convert detail value back to float (undo the quantization)
+    float detail_val = float(detail_quantized) / 65535.0;
 
     if(detail_val >= 0.001) {
         // If there are float digits, the texture is a checkerboard.

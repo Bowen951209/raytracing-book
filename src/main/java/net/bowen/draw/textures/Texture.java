@@ -86,16 +86,16 @@ public class Texture extends Deleteable {
     }
 
     /**
-     * Get the information of the texture. Generally, only integer digits are used, but sometimes, like checkerboard,
-     * store its detail value (in which case is scale), in the float digits.
+     * Get the information of the texture. Generally, only upper 16 bits are used, but sometimes, like checkerboard,
+     * store its detail value (in which case is scale), in the lower 16 bits.
      *
      * @return the id of the texture in {@link #TEXTURES_IN_COMPUTE} list.
      */
-    public float getValue() {
+    public int getValue() {
         int index = TEXTURES_IN_COMPUTE.indexOf(this);
         if (index == -1)
             throw new IllegalStateException("Texture not found in TEXTURES list.");
-        return index;
+        return index << 16;
     }
 
     public static void active(int unit) {
@@ -122,7 +122,7 @@ public class Texture extends Deleteable {
 
     public static void bindTexturesInCompute() {
         for (Texture texture : TEXTURES_IN_COMPUTE) {
-            active((int) texture.getValue());
+            active(TEXTURES_IN_COMPUTE.indexOf(texture));
             texture.bind();
         }
     }

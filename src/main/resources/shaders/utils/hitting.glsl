@@ -12,16 +12,11 @@ struct HitRecord {
 
 struct Sphere {
     vec3 center1;
-
-    // The texture information. Integer digits are the texture id; floating digits are the detail information.
-    float texture_id;
+    int texture_id;
     vec3 center_vec;
     float radius;
     vec3 albedo;
-
-    // The information of the material. Integer didit is the id of the material, and floating digits would sometimes
-    // be the detail information. For example material value of 1.3 is the metal material with fuzz value of 0.3.
-    float material;
+    int material;
 };
 
 struct Interval {

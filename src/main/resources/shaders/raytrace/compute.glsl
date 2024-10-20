@@ -9,6 +9,10 @@ const int MATERIAL_LAMBERTIAN = 0;
 const int MATERIAL_METAL = 1;
 const int MATERIAL_DIELECTRIC = 2;
 
+// Values for extracting the IOR/eta from  material_val.
+const float MIN_IOR = 1.0;
+const float MAX_IOR = 2.5;
+
 uniform sampler2D textures[8];
 uniform int sample_per_pixel; // Count of samples for each pixel.
 uniform int max_depth;        // Maximum number of ray bounces into scene.
@@ -34,7 +38,7 @@ vec2 pixel_coord;
 float rand_factor = u_rand_factor;
 float time; // a factor that is in range [0, 1).
 vec3 albedo;
-float material;
+int material;
 
 struct Ray {
     vec3 o;     // origin
@@ -52,15 +56,17 @@ struct HitRecord {
 struct Sphere {
     vec3 center1;
 
-    // The texture information. Integer digits are the texture id; floating digits are the detail information.
-    float texture_id;
+    // The texture information. The upper 16 bits stores the index in the texture uniform array. The lower 16 bits
+    // stores whatever detail values.
+    int texture_id;
     vec3 center_vec;
     float radius;
     vec3 albedo;
 
-    // The information of the material. Integer didit is the id of the material, and floating digits would sometimes
-    // be the detail information. For example material value of 1.3 is the metal material with fuzz value of 0.3.
-    float material;
+    // The material value is a packed value. The upper 16 bits stores the model id, and the lower 16 bits stores the
+    // data for varying information according to the material type. For example, metal material has its fuzz value in
+    // the lower 16 bits.
+    int material;
 };
 
 struct Interval {
@@ -77,10 +83,11 @@ struct AABB {
 struct BVHNode {
     AABB bbox;
 
-    // The left and right children ids. Integer digits is the index of the model in the SSBO array; floating digit is
-    // the model id. For example, 5.1 is the sphere at index 5.
-    float left_id;
-    float right_id;
+    // Left and right ids are packed values. The upper 16 bits stores the model index in its SSBO, and the lower 16 bits
+    // stores the model id(0 for BVH node; 1 for spheres).
+    // Note that value A and B only range [0, 65535].
+    int left_id;
+    int right_id;
 };
 
 layout(std430, binding = 0) buffer ModelsBuffer {
@@ -118,7 +125,7 @@ vec3 lambertian_scatter(vec3 normal);
 void metal_scatter(inout vec3 ray_dir, vec3 normal, float fuzz);
 void refract_scatter(inout vec3 ray_dir, vec3 normal, float eta);
 vec3 checkerboard(vec3 p);
-vec3 texture_color(vec3 p, float id);
+vec3 texture_color(vec3 p, int id);
 
 // Transform the passed in linear-space color to gamma space using gamma value of 2.
 vec3 linear_to_gamma(vec3 linear_component) {
@@ -131,21 +138,35 @@ bool near_zero(vec3 v) {
     return abs(v.x) < s && abs(v.y) < s && abs(v.z) < s;
 }
 
-bool scatter(inout vec3 ray_dir, vec3 normal, bool is_front_face, float material) {
-    switch (int(material)) {
+bool scatter(inout vec3 ray_dir, vec3 normal, bool is_front_face, int material_val) {
+    // Extract material ID from the upper 16 bits
+    int material_id = (material_val >> 16) & 0xFFFF;
+
+    switch (material_id) {
         case MATERIAL_LAMBERTIAN: {
             ray_dir = lambertian_scatter(normal);
             return true;
         }
         case MATERIAL_METAL: {
-            // The fuzz value is set in the floating point of the material variable, so:
-            float fuzz = material - MATERIAL_METAL;
+            // Extract fuzz from the lower 16 bits
+            int fuzz_quantized = material_val & 0xFFFF;
+
+            // Convert fuzz back to float (undo the quantization)
+            float fuzz = float(fuzz_quantized) / 65535.0;
+
             metal_scatter(ray_dir, normal, fuzz);
             return dot(ray_dir, normal) > 0.0; // check if the ray is absorbed by the metal
         }
         case MATERIAL_DIELECTRIC: {
-            // The index of refraction is set from the 2nd digit in the floating point, so:
-            float eta = (material - MATERIAL_DIELECTRIC) * 10.0;
+            // Extract quantized IOR from the lower 16 bits
+            int iorQuantized = material_val & 0xFFFF;
+
+            // Convert quantized IOR back to normalized float [0, 1]
+            float normalizedIOR = float(iorQuantized) / 65535.0;
+
+            // Scale back to the original IOR range [1.0, 2.5]
+            float eta = mix(MIN_IOR, MAX_IOR, normalizedIOR);
+
             if(is_front_face) eta = 1.0 / eta;
             refract_scatter(ray_dir, normal, eta);
             return true;
@@ -153,10 +174,10 @@ bool scatter(inout vec3 ray_dir, vec3 normal, bool is_front_face, float material
     }
 }
 
-bool is_sphere(float index) {
-    float id = index - int(index);
-    // sphere id is 0.1, but float could have precision problem, so extend a small range.
-    return interval_surrounds(Interval(0.001, 0.101), id);
+bool is_sphere(int id) {
+    // Extract the id from the lower 16 bits.
+    id &= 0xFFFF;
+    return id == 1; // 1 is the id of sphere
 }
 
 bool trace_through_bvh(Ray ray, Interval ray_t, out HitRecord hit_record) {
@@ -177,7 +198,9 @@ bool trace_through_bvh(Ray ray, Interval ray_t, out HitRecord hit_record) {
         if (hit_aabb(ray, node.bbox, ray_t)) {
             if (is_sphere(node.left_id)) { // if left is sphere, right should also be sphere.
                 // Test left and right spheres.
-                sphere_idx = int(node.left_id);
+
+                // Extract the sphere index from the upper 16 bits.
+                sphere_idx = (node.left_id >> 16) & 0xFFFF;
                 sphere = spheres[sphere_idx];
                 for (int i = 0; i < 2; i++) {
                     sphere = spheres[sphere_idx];
@@ -192,11 +215,12 @@ bool trace_through_bvh(Ray ray, Interval ray_t, out HitRecord hit_record) {
                         else
                             albedo = texture_color(hit_record.p, sphere.texture_id);
                     }
-                    sphere_idx = int(node.right_id);
+                    sphere_idx = (node.right_id >> 16) & 0xFFFF;
                 }
             } else {
-                stack[stack_ptr++] = int(node.left_id);
-                stack[stack_ptr++] = int(node.right_id);
+                // Extract the sphere indices from the upper 16 bits.
+                stack[stack_ptr++] = (node.left_id >> 16) & 0xFFFF;
+                stack[stack_ptr++] = (node.right_id >> 16) & 0xFFFF;
             }
         }
     }
