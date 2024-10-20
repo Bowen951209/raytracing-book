@@ -4,7 +4,6 @@ struct Ray {
 };
 
 struct HitRecord {
-    bool hit;
     bool is_front_face;
     vec3 p;
     vec3 normal;
@@ -51,7 +50,7 @@ vec3 sphere_center(vec3 center1, vec3 center_vec) {
     return center1 + center_vec * time;
 }
 
-HitRecord hit_sphere(Ray ray, vec3 center1, vec3 center_vec, float radius, Interval ray_t) {
+bool hit_sphere(Ray ray, vec3 center1, vec3 center_vec, float radius, Interval ray_t, inout HitRecord hit_record) {
     vec3 center = sphere_center(center1, center_vec);
     vec3 oc = ray.o - center;
     float a = dot(ray.dir, ray.dir);
@@ -59,10 +58,8 @@ HitRecord hit_sphere(Ray ray, vec3 center1, vec3 center_vec, float radius, Inter
     float c = dot(oc, oc) - radius * radius;
     float discriminant = half_b * half_b - a * c;
 
-    HitRecord hit_record;
     if (discriminant < 0.0) {
-        hit_record.hit = false;
-        return hit_record;
+        return false;
     } else {
         float sqrtd = sqrt(discriminant);
 
@@ -71,18 +68,16 @@ HitRecord hit_sphere(Ray ray, vec3 center1, vec3 center_vec, float radius, Inter
         if (!interval_surrounds(ray_t, root)) {
             root = (-half_b + sqrtd) / a;
             if (!interval_surrounds(ray_t, root)) {
-                hit_record.hit = false;
-                return hit_record;
+                return false;
             }
         }
 
-        hit_record.hit = true;
         hit_record.t = root;
         hit_record.p = ray.o + ray.dir * hit_record.t;
         vec3 outward_normal = (hit_record.p - center) / radius;
         hit_record.is_front_face = is_front_face(ray.dir, outward_normal);
         hit_record.normal = get_face_normal(outward_normal, hit_record.is_front_face);
-        return hit_record;
+        return true;
     }
 }
 
