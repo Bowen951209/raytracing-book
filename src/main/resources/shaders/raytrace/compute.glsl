@@ -180,7 +180,7 @@ bool trace_through_bvh(Ray ray, Interval ray_t, out HitRecord hit_record) {
                 sphere_idx = int(node.left_id);
                 sphere = spheres[sphere_idx];
                 for (int i = 0; i < 2; i++) {
-                    sphere = spheres[sphere_id];
+                    sphere = spheres[sphere_idx];
                     if (hit_sphere(ray, sphere.center1, sphere.center_vec, sphere.radius, ray_t, hit_record)) {
                         has_hit = true;
                         ray_t.max = hit_record.t;
@@ -235,9 +235,8 @@ vec3 get_color(Ray ray) {
     vec3 color = vec3(0.0);
     vec3 color_scale = vec3(1.0);
 
+    HitRecord hit_record;
     for (int i = 0; i < max_depth; i++) {
-        HitRecord hit_record;
-
         if (trace_through_bvh(ray, Interval(0.001, INFINITY), hit_record)) {
             if(scatter(ray.dir, hit_record.normal, hit_record.is_front_face, material)) {
                 // Catch degenerate scatter direction.

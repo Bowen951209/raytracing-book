@@ -50,7 +50,7 @@ vec3 sphere_center(vec3 center1, vec3 center_vec) {
     return center1 + center_vec * time;
 }
 
-bool hit_sphere(Ray ray, vec3 center1, vec3 center_vec, float radius, Interval ray_t, out HitRecord hit_record) {
+bool hit_sphere(Ray ray, vec3 center1, vec3 center_vec, float radius, Interval ray_t, inout HitRecord hit_record) {
     vec3 center = sphere_center(center1, center_vec);
     vec3 oc = ray.o - center;
     float a = dot(ray.dir, ray.dir);
