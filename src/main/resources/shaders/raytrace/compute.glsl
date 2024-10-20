@@ -162,7 +162,7 @@ bool is_sphere(float index) {
 bool trace_through_bvh(Ray ray, Interval ray_t, out HitRecord hit_record) {
     bool has_hit = false;
     int node_idx;
-    int sphere_id;
+    int sphere_idx;
     int stack[64];
     int stack_ptr = 0;
     stack[stack_ptr++] = 0;
@@ -177,7 +177,8 @@ bool trace_through_bvh(Ray ray, Interval ray_t, out HitRecord hit_record) {
         if (hit_aabb(ray, node.bbox, ray_t)) {
             if (is_sphere(node.left_id)) { // if left is sphere, right should also be sphere.
                 // Test left and right spheres.
-                sphere_id = int(node.left_id);
+                sphere_idx = int(node.left_id);
+                sphere = spheres[sphere_idx];
                 for (int i = 0; i < 2; i++) {
                     if (hit_sphere(ray, sphere.center1, sphere.center_vec, sphere.radius, ray_t, hit_record)) {
                         has_hit = true;
@@ -191,7 +192,7 @@ bool trace_through_bvh(Ray ray, Interval ray_t, out HitRecord hit_record) {
                         else
                             albedo = texture_color(hit_record.p, sphere.texture_id);
                     }
-                    sphere_id = int(node.right_id);
+                    sphere_idx = int(node.right_id);
                 }
             } else {
                 stack[stack_ptr++] = int(node.left_id);
