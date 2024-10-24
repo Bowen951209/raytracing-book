@@ -65,7 +65,7 @@ public class PerlinNoiseTexture extends Texture {
     }
 
     public static void putAllToProgram() {
-        ByteBuffer buffer = MemoryUtil.memAlloc(4 * POINT_COUNT * INSTANCES.size() * Byte.SIZE);
+        ByteBuffer buffer = MemoryUtil.memAlloc(4 * POINT_COUNT * INSTANCES.size() * Float.BYTES);
 
         for (PerlinNoiseTexture instance : INSTANCES) {
             instance.randomFloats.forEach(buffer::putFloat);
