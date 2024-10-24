@@ -1,3 +1,8 @@
+const int TEXTURE_IMAGE = 1;
+const int TEXTURE_CHECKER = 2;
+const int TEXTURE_PERLIN = 3;
+
+
 vec3 checkerboard(vec3 p, float scale, int tex_idx) {
     float inv_scale = 1.0 / scale;
 
@@ -8,6 +13,15 @@ vec3 checkerboard(vec3 p, float scale, int tex_idx) {
         return texture2D(textures[tex_idx], vec2(0, 0)).rgb;
     else
         return texture2D(textures[tex_idx], vec2(1, 0)).rgb;
+}
+
+float perlin(vec3 p, int perlin_idx) {
+    int i = int(4 * p.x) & 255;
+    int j = int(4 * p.y) & 255;
+    int k = int(4 * p.z) & 255;
+
+    PerlinNoise noise = perlin_noises[perlin_idx];
+    return noise.randomfloats[noise.perm_x[i] ^ noise.perm_y[j] ^ noise.perm_z[k]];
 }
 
 vec2 get_sphere_uv(vec3 p) {
@@ -27,22 +41,23 @@ vec2 get_sphere_uv(vec3 p) {
 }
 
 vec3 texture_color(vec3 p, int id) {
-    // Extract texture index in upper 16 bits.
-    int tex_idx = (id >> 16) & 0xFFFF;
+    // Extract detail from the lower 12 bits (bits 0 to 11)
+    int detail_bits = id & 0xFFF;
 
-    // Extract detail value from the lower 16 bits
-    int detail_quantized = id & 0xFFFF;
+    // Extract index from the middle 16 bits (bits 12 to 27)
+    int index = (id >> 12) & 0xFFFF;
 
-    // Convert detail value back to float (undo the quantization)
-    float detail_val = float(detail_quantized) / 65535.0;
+    // Extract textureTypeId from the upper 4 bits (bits 28 to 31)
+    int texture_type = (id >> 28) & 0xF;
 
-    if(detail_val >= 0.001) {
-        // If there are float digits, the texture is a checkerboard.
+    // Convert the 12-bit detail integer back to a float (range [0, 1])
+    float detail = float(detail_bits) / 4095.0;
 
-        // Scale is equal to the detail_val.
-        return checkerboard(p, detail_val, tex_idx);
-    } else {
-        // It's an image texture.
-        return texture2D(textures[tex_idx], get_sphere_uv(p)).rgb;
+
+    switch(texture_type) {
+        case TEXTURE_CHECKER: return checkerboard(p, detail, index);
+        case TEXTURE_IMAGE: return texture2D(textures[index], get_sphere_uv(p)).rgb;
+        case TEXTURE_PERLIN: return vec3(perlin(p, index));
+        default: return vec3(0.0, 0.0, 0.0);
     }
 }

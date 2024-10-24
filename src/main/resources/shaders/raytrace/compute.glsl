@@ -8,6 +8,7 @@ const float INFINITY = 3.402823E+38;
 const int MATERIAL_LAMBERTIAN = 0;
 const int MATERIAL_METAL = 1;
 const int MATERIAL_DIELECTRIC = 2;
+const int PERLIN_POINT_COUNT = 256;
 
 // Values for extracting the IOR/eta from  material_val.
 const float MIN_IOR = 1.0;
@@ -90,12 +91,23 @@ struct BVHNode {
     int right_id;
 };
 
+struct PerlinNoise {
+    float randomfloats[PERLIN_POINT_COUNT];
+    int perm_x[PERLIN_POINT_COUNT];
+    int perm_y[PERLIN_POINT_COUNT];
+    int perm_z[PERLIN_POINT_COUNT];
+};
+
 layout(std430, binding = 0) buffer ModelsBuffer {
     Sphere spheres[];
 };
 
 layout(std430, binding = 1) buffer BVHBuffer {
     BVHNode bvh_nodes[];
+};
+
+layout(std430, binding = 2) buffer PerlinBuffer {
+    PerlinNoise perlin_noises[];
 };
 
 // The includes. Must be after the global variables and ssbos because some of the includes use those.

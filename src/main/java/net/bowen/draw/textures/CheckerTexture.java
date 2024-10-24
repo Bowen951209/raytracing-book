@@ -8,20 +8,13 @@ import java.nio.ByteBuffer;
 import static org.lwjgl.opengl.GL43.*;
 
 public class CheckerTexture extends Texture {
+    private static final int TEXTURE_TYPE_ID = 2;
+
     private final float scale;
 
     private CheckerTexture(ByteBuffer buffer, float scale) {
         super(2, 1, GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE, buffer);
         this.scale = scale;
-    }
-
-    @Override
-    public int getValue() {
-        // Quantize the scale value (assuming scale is in the range [0, 1])
-        int scaleQuantized = (int) (scale * 65535.0f); // Quantize float to 16 bits (range 0-65535)
-
-        // Pack the texture ID (16 bits) and scaleQuantized (16 bits) into a single 32-bit integer
-        return super.getValue() | (scaleQuantized & 0xFFFF);
     }
 
     public static CheckerTexture create(float r1, float g1, float b1, float r2, float g2, float b2, float scale) {
@@ -39,5 +32,15 @@ public class CheckerTexture extends Texture {
 
         texturesInComputeAdd(instance);
         return instance;
+    }
+
+    @Override
+    protected int getTextureTypeId() {
+        return TEXTURE_TYPE_ID;
+    }
+
+    @Override
+    protected float getDetail() {
+        return scale;
     }
 }

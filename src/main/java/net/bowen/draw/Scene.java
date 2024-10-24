@@ -7,6 +7,7 @@ import net.bowen.draw.materials.Metal;
 import net.bowen.draw.textures.CheckerTexture;
 import net.bowen.draw.textures.ImageTexture;
 import net.bowen.draw.textures.Texture;
+import net.bowen.draw.textures.PerlinNoiseTexture;
 import net.bowen.system.ShaderProgram;
 import org.joml.Vector3f;
 
@@ -22,6 +23,7 @@ public final class Scene {
             case 0 -> bouncingSpheres();
             case 1 -> checkerSpheres();
             case 2 -> earth();
+            case 3 -> perlinSpheres();
         }
 
         Texture.putTextureIndices(computeProgram);
@@ -115,6 +117,26 @@ public final class Scene {
 
         camera.setVerticalFOV(20);
         camera.setLookFrom(0, 0, 12);
+        camera.setLookAt(0, 0, 0);
+        camera.setDefocusAngle(0);
+    }
+
+    private void perlinSpheres() {
+        PerlinNoiseTexture perlinNoise = new PerlinNoiseTexture();
+        PerlinNoiseTexture.addInstance(perlinNoise);
+        PerlinNoiseTexture.initSSBO();
+        PerlinNoiseTexture.putAllToProgram();
+
+        Material groundSurface = new Lambertian(perlinNoise);
+        RaytraceModel.addModel(new Sphere(0, -1000, 0, 1000, groundSurface));
+
+        Material sphereSurface = new Lambertian(perlinNoise);
+        RaytraceModel.addModel(new Sphere(0, 2, 0, 2, sphereSurface));
+
+        RaytraceModel.putModelsToProgram();
+
+        camera.setVerticalFOV(20);
+        camera.setLookFrom(13, 2, 3);
         camera.setLookAt(0, 0, 0);
         camera.setDefocusAngle(0);
     }
