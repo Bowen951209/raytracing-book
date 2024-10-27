@@ -15,13 +15,41 @@ vec3 checkerboard(vec3 p, float scale, int tex_idx) {
         return texture2D(textures[tex_idx], vec2(1, 0)).rgb;
 }
 
+float trilinear_interp(float c[2][2][2], float u, float v, float w) {
+    float accum = 0.0;
+    for (int i=0; i < 2; i++)
+        for (int j=0; j < 2; j++)
+            for (int k=0; k < 2; k++)
+                accum += (i * u + ( 1 - i) * (1 - u))
+                * ( j * v + (1 - j) * (1 - v))
+                * (k * w + (1 - k) * (1 - w))
+                * c[i][j][k];
+
+    return accum;
+}
+
 float perlin(vec3 p, int perlin_idx) {
-    int i = int(4 * p.x) & 255;
-    int j = int(4 * p.y) & 255;
-    int k = int(4 * p.z) & 255;
+    float u = p.x - floor(p.x);
+    float v = p.y - floor(p.y);
+    float w = p.z - floor(p.z);
+
+    int i = int(floor(p.x));
+    int j = int(floor(p.y));
+    int k = int(floor(p.z));
+    float c[2][2][2];
 
     PerlinNoise noise = perlin_noises[perlin_idx];
-    return noise.randomfloats[noise.perm_x[i] ^ noise.perm_y[j] ^ noise.perm_z[k]];
+
+    for (int di = 0; di < 2; di++)
+        for (int dj = 0; dj < 2; dj++)
+            for (int dk = 0; dk < 2; dk++)
+                    c[di][dj][dk] = noise.randomfloats[
+                    noise.perm_x[(i + di) & 255] ^
+                    noise.perm_y[(j + dj) & 255] ^
+                    noise.perm_z[(k + dk) & 255]
+                ];
+
+    return trilinear_interp(c, u, v, w);
 }
 
 vec2 get_sphere_uv(vec3 p) {
