@@ -18,15 +18,11 @@ public class Texture extends Deleteable {
     private static final List<Texture> TEXTURES_IN_COMPUTE = new ArrayList<>();
     private static final int DEFAULT_TYPE_ID = 0;
 
-    private int textureID;
-    private int internalFormat;
-    private int format;
-    private int type;
+    private final int textureID;
+    private final int internalFormat;
+    private final int format;
+    private final int type;
     private int width, height;
-
-    public Texture() {
-        super(false);
-    }
 
     public Texture(int width, int height, int internalFormat, int format, int type, ByteBuffer data) {
         super(true);
@@ -106,14 +102,8 @@ public class Texture extends Deleteable {
     public int getValue() {
         // Get the real values.
         int index = TEXTURES_IN_COMPUTE.indexOf(this);
-        if (index == -1) {
-            // Perlin noises are not in TEXTURES_IN_COMPUTE list because they're not stored in texture units, but they
-            // have own index counter.
-            if (this instanceof PerlinNoiseTexture noise)
-                index = noise.index;
-            else
-                throw new IllegalStateException("Texture not found in TEXTURES list.");
-        }
+        if (index == -1)
+            throw new IllegalStateException("Texture not found in TEXTURES list.");
 
         int textureType = getTextureTypeId();
 

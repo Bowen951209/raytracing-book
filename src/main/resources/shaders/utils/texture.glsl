@@ -28,7 +28,7 @@ float trilinear_interp(float c[2][2][2], float u, float v, float w) {
     return accum;
 }
 
-float perlin(vec3 p, int perlin_idx) {
+float perlin(vec3 p, int tex_idx) {
     float u = p.x - floor(p.x);
     float v = p.y - floor(p.y);
     float w = p.z - floor(p.z);
@@ -38,16 +38,22 @@ float perlin(vec3 p, int perlin_idx) {
     int k = int(floor(p.z));
     float c[2][2][2];
 
-    PerlinNoise noise = perlin_noises[perlin_idx];
+    int perm_x, perm_y, perm_z;
 
-    for (int di = 0; di < 2; di++)
-        for (int dj = 0; dj < 2; dj++)
-            for (int dk = 0; dk < 2; dk++)
-                    c[di][dj][dk] = noise.randomfloats[
-                    noise.perm_x[(i + di) & 255] ^
-                    noise.perm_y[(j + dj) & 255] ^
-                    noise.perm_z[(k + dk) & 255]
-                ];
+    for (int di = 0; di < 2; di++) {
+        for (int dj = 0; dj < 2; dj++) {
+            for (int dk = 0; dk < 2; dk++) {
+                //  - random floats are in row 0.
+                //  - perm_x values are in row 1.
+                //  - perm_y values are in row 2.
+                //  - perm_z values are in row 3.
+                perm_x = int(texelFetch(textures[tex_idx], ivec2(1, (i + di) & 255), 0).r);
+                perm_y = int(texelFetch(textures[tex_idx], ivec2(2, (j + dj) & 255), 0).r);
+                perm_z = int(texelFetch(textures[tex_idx], ivec2(3, (k + dk) & 255), 0).r);
+                c[di][dj][dk] = texelFetch(textures[tex_idx], ivec2(0, perm_x ^ perm_y ^ perm_z), 0).r;
+            }
+        }
+    }
 
     return trilinear_interp(c, u, v, w);
 }
