@@ -32,6 +32,9 @@ float perlin(vec3 p, int tex_idx) {
     float u = p.x - floor(p.x);
     float v = p.y - floor(p.y);
     float w = p.z - floor(p.z);
+    u = u * u * (3 - 2 * u);
+    v = v * v * (3 - 2 * v);
+    w = w * w * (3 - 2 * w);
 
     int i = int(floor(p.x));
     int j = int(floor(p.y));
@@ -91,7 +94,7 @@ vec3 texture_color(vec3 p, int id) {
     switch(texture_type) {
         case TEXTURE_CHECKER: return checkerboard(p, detail, index);
         case TEXTURE_IMAGE: return texture2D(textures[index], get_sphere_uv(p)).rgb;
-        case TEXTURE_PERLIN: return vec3(perlin(p, index));
+        case TEXTURE_PERLIN: return vec3(perlin(detail * 100.0 * p, index)); // detail x 100 is the scale.
         default: return vec3(0.0, 0.0, 0.0);
     }
 }
