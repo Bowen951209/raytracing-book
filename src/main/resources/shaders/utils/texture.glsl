@@ -15,15 +15,21 @@ vec3 checkerboard(vec3 p, float scale, int tex_idx) {
         return texture2D(textures[tex_idx], vec2(1, 0)).rgb;
 }
 
-float trilinear_interp(float c[2][2][2], float u, float v, float w) {
+float perlin_interp(vec3 c[2][2][2], float u, float v, float w) {
+    float uu = u * u * (3.0 - 2.0 * u);
+    float vv = v * v * (3.0 - 2.0 * v);
+    float ww = w * w * (3.0 - 2.0 * w);
     float accum = 0.0;
-    for (int i=0; i < 2; i++)
-        for (int j=0; j < 2; j++)
-            for (int k=0; k < 2; k++)
-                accum += (i * u + ( 1 - i) * (1 - u))
-                * ( j * v + (1 - j) * (1 - v))
-                * (k * w + (1 - k) * (1 - w))
-                * c[i][j][k];
+
+    for (int i = 0; i < 2; i++)
+        for (int j = 0; j < 2; j++)
+            for (int k = 0; k < 2; k++) {
+                vec3 weight_v = vec3(u - float(i), v - float(j), w - float(k));
+                accum += (i * uu + (1.0 - float(i)) * (1.0 - uu))
+                * (j * vv + (1.0 - float(j)) * (1.0 - vv))
+                * (k * ww + (1.0 - float(k)) * (1.0 - ww))
+                * dot(c[i][j][k], weight_v);
+            }
 
     return accum;
 }
@@ -39,26 +45,36 @@ float perlin(vec3 p, int tex_idx) {
     int i = int(floor(p.x));
     int j = int(floor(p.y));
     int k = int(floor(p.z));
-    float c[2][2][2];
+    vec3 c[2][2][2];
 
-    int perm_x, perm_y, perm_z;
+    int perm_x, perm_y, perm_z, rand_vec_idx;
 
     for (int di = 0; di < 2; di++) {
         for (int dj = 0; dj < 2; dj++) {
             for (int dk = 0; dk < 2; dk++) {
-                //  - random floats are in row 0.
-                //  - perm_x values are in row 1.
-                //  - perm_y values are in row 2.
-                //  - perm_z values are in row 3.
-                perm_x = int(texelFetch(textures[tex_idx], ivec2(1, (i + di) & 255), 0).r);
-                perm_y = int(texelFetch(textures[tex_idx], ivec2(2, (j + dj) & 255), 0).r);
-                perm_z = int(texelFetch(textures[tex_idx], ivec2(3, (k + dk) & 255), 0).r);
-                c[di][dj][dk] = texelFetch(textures[tex_idx], ivec2(0, perm_x ^ perm_y ^ perm_z), 0).r;
+                //  - random vectors' xyz are in row 0, 1, and 2.
+                //  - perm_x values are in row 3.
+                //  - perm_y values are in row 4.
+                //  - perm_z values are in row 5.
+
+                perm_x = int(texelFetch(textures[tex_idx], ivec2(3, (i + di) & 255), 0).r);
+                perm_y = int(texelFetch(textures[tex_idx], ivec2(4, (j + dj) & 255), 0).r);
+                perm_z = int(texelFetch(textures[tex_idx], ivec2(5, (k + dk) & 255), 0).r);
+
+                rand_vec_idx = perm_x ^ perm_y ^ perm_z;
+
+                c[di][dj][dk] = vec3(
+                    texelFetch(textures[tex_idx], ivec2(0, rand_vec_idx), 0).r,
+                    texelFetch(textures[tex_idx], ivec2(1, rand_vec_idx), 0).r,
+                    texelFetch(textures[tex_idx], ivec2(2, rand_vec_idx), 0).r
+                );
             }
         }
     }
 
-    return trilinear_interp(c, u, v, w);
+    // The return value of perlin_interp() is in range [-1, 1], we're going to scale it to [0, 1].
+    float interp = perlin_interp(c, u, v, w);
+    return 0.5 * (1.0 + interp);
 }
 
 vec2 get_sphere_uv(vec3 p) {
