@@ -10,6 +10,7 @@ public class Sphere extends RaytraceModel {
     public static final int MODEL_ID = 1;
 
     private final Vector3f center1, vec12;
+    private final float radius;
 
     public Sphere(Vector3f center, float radius, Material material) {
         this(center, center, radius, material);
@@ -23,7 +24,7 @@ public class Sphere extends RaytraceModel {
         super(material);
         this.center1 = center1;
         this.vec12 = new Vector3f(center2).sub(center1);
-        data = new float[]{center1.x, center1.y, center1.z, vec12.x, vec12.y, vec12.z, radius};
+        this.radius = radius;
 
         Vector3f rvec = new Vector3f(radius);
         AABB box1 = new AABB(new Vector3f(center1).sub(rvec), new Vector3f(center1).add(rvec));
@@ -42,7 +43,7 @@ public class Sphere extends RaytraceModel {
         DataUtils.putToBuffer(vec12, buffer);
 
         // Radius (float)
-        buffer.putFloat(data[6]);
+        buffer.putFloat(radius);
 
         // Albedo (vec3)
         float[] albedo = material.getAlbedo();

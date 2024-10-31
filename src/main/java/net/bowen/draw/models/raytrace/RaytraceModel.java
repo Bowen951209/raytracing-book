@@ -18,7 +18,6 @@ public abstract class RaytraceModel {
     protected final Material material;
 
     public int indexInList;
-    protected float[] data;
     protected AABB bbox;
 
     protected RaytraceModel(Material material) {
