@@ -13,13 +13,11 @@ import static org.lwjgl.opengl.GL43.*;
 public abstract class RaytraceModel {
     public static final List<Sphere> SPHERES = new ArrayList<>();
     public static final List<BVHNode> BVH_NODES = new ArrayList<>();
-
     private static BufferObject sphereSSBO, bvhSSBO;
 
-    private final Material material;
+    protected final Material material;
 
     public int indexInList;
-
     protected float[] data;
     protected AABB bbox;
 
@@ -76,28 +74,8 @@ public abstract class RaytraceModel {
         // - 3 floats for albedo (vec3)
         // - 1 float for material
         ByteBuffer buffer = MemoryUtil.memAlloc(SPHERES.size() * 12 * Byte.SIZE);
-        for (RaytraceModel model : SPHERES) {
-            // Center position (vec3)
-            buffer.putFloat(model.data[0]).putFloat(model.data[1]).putFloat(model.data[2]); // x, y, z
-
-            // Material id.
-            buffer.putInt(model.material.getTextureValue());
-
-            // Center vector (vec3)
-            buffer.putFloat(model.data[3]).putFloat(model.data[4]).putFloat(model.data[5]);
-
-            // Radius (float)
-            buffer.putFloat(model.data[6]);
-
-            // Albedo (vec3)
-            float[] albedo = model.material.getAlbedo();
-            buffer.putFloat(albedo[0]); // r
-            buffer.putFloat(albedo[1]); // g
-            buffer.putFloat(albedo[2]); // b
-
-            // Material (int)
-            buffer.putInt(model.material.getValue());
-        }
+        for (Sphere sphere : SPHERES)
+            sphere.putToBuffer(buffer);
         buffer.flip();
 
         if (sphereSSBO == null)

@@ -47,11 +47,14 @@ public final class Scene {
         RaytraceModel.addModel(new Sphere(0, -1000, 0, 1000, groundMaterial));
 
         Random random = new Random();
-        Vector3f center = new Vector3f();
         for (int a = -11; a < 11; a++) {
             for (int b = -11; b < 11; b++) {
                 double chooseMaterial = Math.random();
-                center.set(a + 0.9f * Math.random(), 0.2f, b + 0.9f * Math.random());
+                Vector3f center = new Vector3f(
+                        (float) (a + 0.9f * Math.random()),
+                        0.2f,
+                        (float) (b + 0.9f * Math.random())
+                );
 
                 if ((new Vector3f(center).sub(4, 0.2f, 0)).length() > 0.9f) {
                     Material sphereMaterial;
