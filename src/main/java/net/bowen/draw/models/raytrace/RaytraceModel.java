@@ -12,8 +12,9 @@ import static org.lwjgl.opengl.GL43.*;
 
 public abstract class RaytraceModel {
     public static final List<Sphere> SPHERES = new ArrayList<>();
+    public static final List<Quad> QUADS = new ArrayList<>();
     public static final List<BVHNode> BVH_NODES = new ArrayList<>();
-    private static BufferObject sphereSSBO, bvhSSBO;
+    private static BufferObject sphereSSBO, quadSSBO, bvhSSBO;
 
     protected final Material material;
 
@@ -37,12 +38,21 @@ public abstract class RaytraceModel {
         throw new IllegalStateException("This model should not write data to buffer!");
     }
 
-    public static void addModel(RaytraceModel model) {
-        // Since we only have sphere models now, we assume it is always sphere.
-        SPHERES.add((Sphere) model);
+    protected int getModelId() {
+        //  If this method is not overridden, the model should not have a valid model id.
+        return -1;
+    }
 
-        // The id can be calculated by the size of the list. And remember we add the model id to the floating point.
-        model.indexInList = SPHERES.size() - 1;
+    public static void addModel(RaytraceModel model) {
+        if (model instanceof Sphere) {
+            SPHERES.add((Sphere) model);
+            // The id can be calculated by the size of the list. And remember we add the model id to the floating point.
+            model.indexInList = SPHERES.size() - 1;
+        } else if (model instanceof Quad) {
+            QUADS.add((Quad) model);
+            // The id can be calculated by the size of the list. And remember we add the model id to the floating point.
+            model.indexInList = QUADS.size() - 1;
+        }
     }
 
     public static void initSSBOs() {
@@ -52,6 +62,11 @@ public abstract class RaytraceModel {
         sphereSSBO = new BufferObject(GL_SHADER_STORAGE_BUFFER);
         // Bind the SSBO to a binding point
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, sphereSSBO.getId());
+
+        // Quads:
+        quadSSBO = new BufferObject(GL_SHADER_STORAGE_BUFFER);
+        // Bind the SSBO to a binding point
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, quadSSBO.getId());
 
         // BVH nodes:
         bvhSSBO = new BufferObject(GL_SHADER_STORAGE_BUFFER);
@@ -63,8 +78,16 @@ public abstract class RaytraceModel {
         sphereSSBO.bind();
         putSpheresToProgram();
 
-        // Recursively create BVH nodes. Each node will put itself to the BVH_NODES list.
-        new BVHNode(SPHERES, 0, SPHERES.size());
+        quadSSBO.bind();
+        putQuadsToProgram();
+
+        // Create a list of all models.
+        List<RaytraceModel> allModels = new ArrayList<>();
+        allModels.addAll(SPHERES);
+        allModels.addAll(QUADS);
+
+        // Recursively create BVH nodes for models. Each node will put itself to the BVH_NODES list.
+        new BVHNode(allModels, 0, allModels.size());
 
         bvhSSBO.bind();
         putBVHNodesToProgram();
@@ -86,6 +109,20 @@ public abstract class RaytraceModel {
             throw new NullPointerException("ssbo is null. Has it been initialized?");
 
         sphereSSBO.uploadData(buffer, GL_STATIC_DRAW);
+        MemoryUtil.memFree(buffer);
+    }
+
+    private static void putQuadsToProgram() {
+        //TODO: describe structure
+        ByteBuffer buffer = MemoryUtil.memAlloc(QUADS.size() * 24 * Byte.SIZE);
+        for (Quad quad : QUADS)
+            quad.putToBuffer(buffer);
+        buffer.flip();
+
+        if (quadSSBO == null)
+            throw new NullPointerException("ssbo is null. Has it been initialized?");
+
+        quadSSBO.uploadData(buffer, GL_STATIC_DRAW);
         MemoryUtil.memFree(buffer);
     }
 

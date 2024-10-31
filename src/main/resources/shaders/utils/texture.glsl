@@ -108,7 +108,7 @@ vec2 get_sphere_uv(vec3 p) {
     return vec2(phi / (2.0 * PI), theta / PI);
 }
 
-vec3 texture_color(vec3 p, int id) {
+vec3 texture_color(vec3 p, int id, vec2 uv) {
     // Extract detail from the lower 12 bits (bits 0 to 11)
     int detail_bits = id & 0xFFF;
 
@@ -124,7 +124,7 @@ vec3 texture_color(vec3 p, int id) {
 
     switch(texture_type) {
         case TEXTURE_CHECKER: return checkerboard(p, detail, index);
-        case TEXTURE_IMAGE: return texture2D(textures[index], get_sphere_uv(p)).rgb;
+        case TEXTURE_IMAGE: return texture2D(textures[index], uv).rgb;
         case TEXTURE_PERLIN: return perlin_noise_color(p, detail * 100, index); // detail * 100 is the scale for perlin noise
         default: return vec3(0.0, 0.0, 0.0);
     }

@@ -28,6 +28,11 @@ public class Interval {
         return set(Math.min(a.min, b.min), Math.max(a.max, b.max));
     }
 
+    public void expand(float delta) {
+        float padding = delta / 2;
+        set(min - padding, max + padding);
+    }
+
     /**
      * @return the size of the interval, which is max - min.
      */

@@ -52,13 +52,15 @@ public class BVHNode extends RaytraceModel {
         buffer.putFloat(bbox.y.min).putFloat(bbox.y.max);
         buffer.putFloat(bbox.z.min).putFloat(bbox.z.max);
 
-        // Get the model id of the left and right children. Left and right should be the same model type.
-        // For now, we only have two model types, so here's a ternary operator:
-        int modelId = left instanceof Sphere ? Sphere.MODEL_ID : BVHNode.MODEL_ID;
 
         // Put the index in list in upper 16 bits; model id in lower 16 bits.
-        buffer.putInt((left.indexInList << 16) | (modelId & 0xFFFF));
-        buffer.putInt((right.indexInList << 16) | (modelId & 0xFFFF));
+        buffer.putInt((left.indexInList << 16) | (left.getModelId() & 0xFFFF));
+        buffer.putInt((right.indexInList << 16) | (right.getModelId() & 0xFFFF));
+    }
+
+    @Override
+    protected int getModelId() {
+        return MODEL_ID;
     }
 
     private static int boxCompare(RaytraceModel a, RaytraceModel b, int axis) {

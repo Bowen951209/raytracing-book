@@ -55,4 +55,9 @@ public class Sphere extends RaytraceModel {
         // Material (int)
         buffer.putInt(material.getValue());
     }
+
+    @Override
+    protected int getModelId() {
+        return MODEL_ID;
+    }
 }

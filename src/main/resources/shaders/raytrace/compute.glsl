@@ -47,10 +47,11 @@ struct Ray {
 };
 
 struct HitRecord {
-    bool is_front_face;
-    vec3 p;
-    vec3 normal;
-    float t;
+    bool is_front_face; // a boolean shows that whether this hit hits the front face of the object.
+    vec3 p; // the hit point.
+    vec3 normal; // the normal at the hit point of the object.
+    float t; // the scale of the ray from its origin to the hit point.
+    vec2 uv; // the uv coordinate for texture mapping.
 };
 
 // TODO: Make structs for different model types to avoid memory wastes.
@@ -68,6 +69,17 @@ struct Sphere {
     // data for varying information according to the material type. For example, metal material has its fuzz value in
     // the lower 16 bits.
     int material;
+};
+
+struct Quad {
+    vec3 normal; // the normal of the plane.
+    float d; // the d in equation ax+by+cz = d.
+    vec3 q; // the origin for u and v.
+    int material; // the packed material value.
+    vec3 u; // a component vector that structs the quad.
+    vec3 v; // a component vector that structs the quad.
+    vec3 w; // a vector for hit calculation.
+    vec3 albedo;
 };
 
 struct Interval {
@@ -91,7 +103,7 @@ struct BVHNode {
     int right_id;
 };
 
-layout(std430, binding = 0) buffer ModelsBuffer {
+layout(std430, binding = 0) buffer SphereBuffer {
     Sphere spheres[];
 };
 
@@ -99,13 +111,17 @@ layout(std430, binding = 1) buffer BVHBuffer {
     BVHNode bvh_nodes[];
 };
 
+layout(std430, binding = 2) buffer QuadBuffer {
+    Quad quads[];
+};
+
 // The includes. Must be after the global variables and ssbos because some of the includes use those.
 #include <utils/math.glsl>
 #include <utils/interval.glsl>
 #include <utils/random.glsl>
+#include <utils/texture.glsl>
 #include <utils/hitting.glsl>
 #include <utils/scatter.glsl>
-#include <utils/texture.glsl>
 
 // The placeholders for the functions in the includes.
 bool interval_surrounds(Interval interval, float x);
@@ -126,7 +142,8 @@ vec3 lambertian_scatter(vec3 normal);
 void metal_scatter(inout vec3 ray_dir, vec3 normal, float fuzz);
 void refract_scatter(inout vec3 ray_dir, vec3 normal, float eta);
 vec3 checkerboard(vec3 p);
-vec3 texture_color(vec3 p, int id);
+vec3 texture_color(vec3 p, int id, vec2 uv);
+bool hit_model(Ray ray, Interval ray_t, int model_idx, int model_type, inout HitRecord hit_record);
 
 // Transform the passed in linear-space color to gamma space using gamma value of 2.
 vec3 linear_to_gamma(vec3 linear_component) {
@@ -175,21 +192,39 @@ bool scatter(inout vec3 ray_dir, vec3 normal, bool is_front_face, int material_v
     }
 }
 
-bool is_sphere(int id) {
-    // Extract the id from the lower 16 bits.
-    id &= 0xFFFF;
-    return id == 1; // 1 is the id of sphere
+int get_node_type(int id) {
+    id &= 0xFFFF; // extract value
+    return id;
+}
+
+void set_material_and_albedo(int model_idx, int model_type, vec3 p, vec2 uv) {
+    switch(model_type) {
+        case 1: // sphere
+            Sphere sphere = spheres[model_idx];
+
+            material = sphere.material;
+            // If no texture is specified, use albedo values, else get the texture color.
+            if(sphere.texture_id == -1)
+                albedo = sphere.albedo;
+            else
+                albedo = texture_color(p, sphere.texture_id, uv);
+            return;
+        case 2: // quad
+            Quad quad = quads[model_idx];
+            material = quad.material;
+            albedo = quad.albedo;//todo: texture
+            return;
+    }
 }
 
 bool trace_through_bvh(Ray ray, Interval ray_t, out HitRecord hit_record) {
     int node_idx;
-    int sphere_idx;
+    int model_idx;
     int stack[64];
     int stack_ptr = 0;
     stack[stack_ptr++] = 0;
 
     BVHNode node;
-    Sphere sphere;
     bool has_hit = false;
 
     while (stack_ptr > 0) {
@@ -197,26 +232,21 @@ bool trace_through_bvh(Ray ray, Interval ray_t, out HitRecord hit_record) {
         node = bvh_nodes[node_idx];
 
         if (hit_aabb(ray, ray_t, node.bbox)) {
-            if (is_sphere(node.left_id)) { // if left is sphere, right should also be sphere.
-                // Test left and right spheres.
+            int node_type = get_node_type(node.left_id);
+            if (node_type != 0) { // if left is leaf, right should also be leaf.
+                // Test left and right models.
 
                 // Extract the sphere index from the upper 16 bits.
-                sphere_idx = (node.left_id >> 16) & 0xFFFF;
-                sphere = spheres[sphere_idx];
+                model_idx = (node.left_id >> 16) & 0xFFFF;
                 for (int i = 0; i < 2; i++) {
-                    sphere = spheres[sphere_idx];
-                    if (hit_sphere(ray, ray_t, sphere.center1, sphere.center_vec, sphere.radius, hit_record)) {
+                    if (hit_model(ray, ray_t, model_idx, node_type, hit_record)) {
                         has_hit = true;
                         ray_t.max = hit_record.t;
-                        material = sphere.material;
 
-                        // If no texture is specified, use albedo values, else get the texture color.
-                        if(sphere.texture_id == -1)
-                            albedo = sphere.albedo;
-                        else
-                            albedo = texture_color(hit_record.p, sphere.texture_id);
+                        set_material_and_albedo(model_idx, node_type, hit_record.p, hit_record.uv);
                     }
-                    sphere_idx = (node.right_id >> 16) & 0xFFFF;
+                    model_idx = (node.right_id >> 16) & 0xFFFF;
+                    node_type = get_node_type(node.right_id);
                 }
             } else {
                 // Extract the sphere indices from the upper 16 bits.
