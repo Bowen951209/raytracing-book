@@ -88,6 +88,10 @@ float noise_turb(vec3 p, int depth, int tex_idx) {
     return abs(accum);
 }
 
+vec3 perlin_noise_color(vec3 p, float scale, int tex_idx) {
+    return vec3(0.5) * (1 + sin(scale * p.z + 10 * noise_turb(p, 7, tex_idx)));
+}
+
 vec2 get_sphere_uv(vec3 p) {
     // p: a given point on the sphere of radius one, centered at the origin.
     // u: returned value [0,1] of angle around the Y axis from X=-1.
@@ -121,7 +125,7 @@ vec3 texture_color(vec3 p, int id) {
     switch(texture_type) {
         case TEXTURE_CHECKER: return checkerboard(p, detail, index);
         case TEXTURE_IMAGE: return texture2D(textures[index], get_sphere_uv(p)).rgb;
-        case TEXTURE_PERLIN: return vec3(noise_turb(p, int(detail * 100), index)); // detail * 100 is the depth for perlin noise
+        case TEXTURE_PERLIN: return perlin_noise_color(p, detail * 100, index); // detail * 100 is the scale for perlin noise
         default: return vec3(0.0, 0.0, 0.0);
     }
 }

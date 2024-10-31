@@ -37,11 +37,11 @@ public class PerlinNoiseTexture extends Texture {
     private static final int TEXTURE_TYPE_ID = 3;
     private static final int POINT_COUNT = 256;
 
-    private final float depth;
+    private final float scale;
 
-    private PerlinNoiseTexture(ByteBuffer data, float depth) {
+    private PerlinNoiseTexture(ByteBuffer data, float scale) {
         super(6, POINT_COUNT, GL_R32F, GL_RED, GL_FLOAT, data);
-        this.depth = depth;
+        this.scale = scale;
     }
 
     @Override
@@ -53,10 +53,11 @@ public class PerlinNoiseTexture extends Texture {
     protected float getDetail() {
         // The shader can only interpret detail values in range [0, 1]
         // , so we downscale it, and then upscale back in the shader.
-        return depth / 100f;
+        // The scale is set to 100.
+        return scale / 100f;
     }
 
-    public static PerlinNoiseTexture create(float depth) {
+    public static PerlinNoiseTexture create(float scale) {
         ByteBuffer data = MemoryUtil.memAlloc(6 * POINT_COUNT * Float.BYTES);
 
         Noise noise = new Noise();
@@ -71,7 +72,7 @@ public class PerlinNoiseTexture extends Texture {
         }
         data.flip();
 
-        PerlinNoiseTexture instance = new PerlinNoiseTexture(data, depth);
+        PerlinNoiseTexture instance = new PerlinNoiseTexture(data, scale);
         MemoryUtil.memFree(data);
         texturesInComputeAdd(instance);
         return instance;

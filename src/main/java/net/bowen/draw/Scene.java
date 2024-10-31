@@ -122,7 +122,7 @@ public final class Scene {
     }
 
     private void perlinSpheres() {
-        PerlinNoiseTexture perlinNoise = PerlinNoiseTexture.create(7);
+        PerlinNoiseTexture perlinNoise = PerlinNoiseTexture.create(4);
 
         Material groundSurface = new Lambertian(perlinNoise);
         RaytraceModel.addModel(new Sphere(0, -1000, 0, 1000, groundSurface));
