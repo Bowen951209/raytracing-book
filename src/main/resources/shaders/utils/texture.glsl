@@ -34,7 +34,7 @@ float perlin_interp(vec3 c[2][2][2], float u, float v, float w) {
     return accum;
 }
 
-float perlin(vec3 p, int tex_idx) {
+float noise(vec3 p, int tex_idx) {
     float u = p.x - floor(p.x);
     float v = p.y - floor(p.y);
     float w = p.z - floor(p.z);
@@ -72,9 +72,20 @@ float perlin(vec3 p, int tex_idx) {
         }
     }
 
-    // The return value of perlin_interp() is in range [-1, 1], we're going to scale it to [0, 1].
-    float interp = perlin_interp(c, u, v, w);
-    return 0.5 * (1.0 + interp);
+    return perlin_interp(c, u, v, w);
+}
+
+float noise_turb(vec3 p, int depth, int tex_idx) {
+    float accum = 0.0;
+    float weight = 1.0;
+
+    for (int i = 0; i < depth; i++) {
+        accum += weight * noise(p, tex_idx);
+        weight *= 0.5;
+        p *= 2.0;
+    }
+
+    return abs(accum);
 }
 
 vec2 get_sphere_uv(vec3 p) {
@@ -110,7 +121,7 @@ vec3 texture_color(vec3 p, int id) {
     switch(texture_type) {
         case TEXTURE_CHECKER: return checkerboard(p, detail, index);
         case TEXTURE_IMAGE: return texture2D(textures[index], get_sphere_uv(p)).rgb;
-        case TEXTURE_PERLIN: return vec3(perlin(detail * 100.0 * p, index)); // detail x 100 is the scale.
+        case TEXTURE_PERLIN: return vec3(noise_turb(p, int(detail * 100), index)); // detail * 100 is the depth for perlin noise
         default: return vec3(0.0, 0.0, 0.0);
     }
 }
