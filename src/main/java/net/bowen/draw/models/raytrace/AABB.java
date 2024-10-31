@@ -1,4 +1,4 @@
-package net.bowen.draw;
+package net.bowen.draw.models.raytrace;
 
 import net.bowen.math.Interval;
 import org.joml.Vector3f;

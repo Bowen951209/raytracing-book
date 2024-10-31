@@ -25,7 +25,7 @@ public class Interval {
      * Construct an interval that is the union of the given intervals.
      */
     public Interval set(Interval a, Interval b) {
-        return set(Math.min(a.min, b.min),  Math.max(a.max, b.max));
+        return set(Math.min(a.min, b.min), Math.max(a.max, b.max));
     }
 
     /**
