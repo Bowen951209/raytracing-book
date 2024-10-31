@@ -13,6 +13,7 @@ import static org.lwjgl.opengl.GL43.*;
 import static org.lwjgl.stb.STBImage.*;
 
 public class ImageTexture extends Texture {
+    private static final int TEXTURE_TYPE_ID = 1;
 
     public ImageTexture(int width, int height, int internalFormat, int format, int type, ByteBuffer data) {
         super(width, height, internalFormat, format, type, data);
@@ -71,5 +72,10 @@ public class ImageTexture extends Texture {
 
             return instance;
         }
+    }
+
+    @Override
+    protected int getTextureTypeId() {
+        return TEXTURE_TYPE_ID;
     }
 }

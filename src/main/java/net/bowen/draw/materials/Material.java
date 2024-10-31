@@ -11,7 +11,8 @@ public abstract class Material {
     protected final int materialId;
 
     protected float[] albedo;
-    protected Texture texture;
+
+    private int texturePackedValue = -1;
 
     public Material(int materialId, Color color) {
         this(materialId, color.r, color.g, color.b);
@@ -24,7 +25,7 @@ public abstract class Material {
 
     public Material(int materialId, Texture texture) {
         this.materialId = materialId;
-        this.texture = texture;
+        this.texturePackedValue = texture.getValue();
     }
 
     /**
@@ -44,6 +45,6 @@ public abstract class Material {
      * @see Texture#getValue()
      */
     public int getTextureValue() {
-        return texture != null ? texture.getValue() + 1 : -1;
+        return texturePackedValue;
     }
 }

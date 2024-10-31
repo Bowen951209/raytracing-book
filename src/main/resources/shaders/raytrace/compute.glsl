@@ -8,6 +8,7 @@ const float INFINITY = 3.402823E+38;
 const int MATERIAL_LAMBERTIAN = 0;
 const int MATERIAL_METAL = 1;
 const int MATERIAL_DIELECTRIC = 2;
+const int PERLIN_POINT_COUNT = 256;
 
 // Values for extracting the IOR/eta from  material_val.
 const float MIN_IOR = 1.0;

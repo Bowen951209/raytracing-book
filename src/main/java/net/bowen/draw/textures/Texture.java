@@ -16,12 +16,12 @@ public class Texture extends Deleteable {
      * The list of textures used in the raytrace compute shader.
      */
     private static final List<Texture> TEXTURES_IN_COMPUTE = new ArrayList<>();
+    private static final int DEFAULT_TYPE_ID = 0;
 
     private final int textureID;
     private final int internalFormat;
     private final int format;
     private final int type;
-
     private int width, height;
 
     public Texture(int width, int height, int internalFormat, int format, int type, ByteBuffer data) {
@@ -86,16 +86,50 @@ public class Texture extends Deleteable {
     }
 
     /**
-     * Get the information of the texture. Generally, only upper 16 bits are used, but sometimes, like checkerboard,
-     * store its detail value (in which case is scale), in the lower 16 bits.
+     * Get the packed value of the texture's information.
+     * <p>
+     *  - The upper 4 bits store the texture type.
+     * </p>
+     * <p>
+     *  - The middle 16 bits store the index in {@link #TEXTURES_IN_COMPUTE}. It will then be the index to the texture array uniform in the compute shader.
+     * </p>
+     * <p>
+     *  - The lower 16 bits store some detail float value. Some of the texture types use it.
+     * </p>
      *
      * @return the id of the texture in {@link #TEXTURES_IN_COMPUTE} list.
      */
     public int getValue() {
+        // Get the real values.
         int index = TEXTURES_IN_COMPUTE.indexOf(this);
         if (index == -1)
             throw new IllegalStateException("Texture not found in TEXTURES list.");
-        return index << 16;
+
+        int textureType = getTextureTypeId();
+
+        float detail = getDetail();
+
+        // Check validate input ranges.
+        if (textureType < 0 || textureType > 15 || index > 65535 || detail < 0.0f || detail > 1.0f)
+            throw new IllegalArgumentException("Input values out of range.");
+
+        // Pack the values.
+        // Convert detail float (0.0 to 1.0) into a 12-bit integer (0 to 4095)
+        int detailBits = (int) (detail * 4095);  // Maps [0, 1] to [0, 4095]
+
+        // Encoding:
+        // - Shift textureTypeId to the upper 4 bits (28th to 31st bits)
+        // - Shift index to the middle 16 bits (12th to 27th bits)
+        // - Leave detail in the lower 12 bits (0th to 11th bits)
+        return (textureType << 28) | (index << 12) | (detailBits & 0xFFF);
+    }
+
+    protected int getTextureTypeId() {
+        return DEFAULT_TYPE_ID;
+    }
+
+    protected float getDetail() {
+        return 0;
     }
 
     public static void active(int unit) {
