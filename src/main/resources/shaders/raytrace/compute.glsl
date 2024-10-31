@@ -119,8 +119,8 @@ vec3 rand_vec3(float min_val, float max_val);
 vec3 rand_vec_in_unit_sphere();
 vec3 rand_unit_vec();
 vec3 rand_on_hemisphere(vec3 normal);
-bool hit_sphere(Ray ray, vec3 center1, vec3 center_vec, float radius, Interval ray_t, inout HitRecord hit_record);
-bool hit_aabb(Ray ray, AABB aabb, Interval ray_t);
+bool hit_sphere(Ray ray, Interval ray_t, vec3 center1, vec3 center_vec, float radius, inout HitRecord hit_record);
+bool hit_aabb(Ray ray, Interval ray_t,  AABB aabb);
 vec3 pixel_sample_square();
 vec3 lambertian_scatter(vec3 normal);
 void metal_scatter(inout vec3 ray_dir, vec3 normal, float fuzz);
@@ -196,7 +196,7 @@ bool trace_through_bvh(Ray ray, Interval ray_t, out HitRecord hit_record) {
         node_idx = stack[--stack_ptr];
         node = bvh_nodes[node_idx];
 
-        if (hit_aabb(ray, node.bbox, ray_t)) {
+        if (hit_aabb(ray, ray_t, node.bbox)) {
             if (is_sphere(node.left_id)) { // if left is sphere, right should also be sphere.
                 // Test left and right spheres.
 
@@ -205,7 +205,7 @@ bool trace_through_bvh(Ray ray, Interval ray_t, out HitRecord hit_record) {
                 sphere = spheres[sphere_idx];
                 for (int i = 0; i < 2; i++) {
                     sphere = spheres[sphere_idx];
-                    if (hit_sphere(ray, sphere.center1, sphere.center_vec, sphere.radius, ray_t, hit_record)) {
+                    if (hit_sphere(ray, ray_t, sphere.center1, sphere.center_vec, sphere.radius, hit_record)) {
                         has_hit = true;
                         ray_t.max = hit_record.t;
                         material = sphere.material;

@@ -45,7 +45,7 @@ vec3 sphere_center(vec3 center1, vec3 center_vec) {
     return center1 + center_vec * time;
 }
 
-bool hit_sphere(Ray ray, vec3 center1, vec3 center_vec, float radius, Interval ray_t, inout HitRecord hit_record) {
+bool hit_sphere(Ray ray, Interval ray_t, vec3 center1, vec3 center_vec, float radius, inout HitRecord hit_record) {
     vec3 center = sphere_center(center1, center_vec);
     vec3 oc = ray.o - center;
     float a = dot(ray.dir, ray.dir);
@@ -81,7 +81,7 @@ Interval axis_interval(int n, AABB aabb) {
     return aabb.x;
 }
 
-bool hit_aabb(Ray ray, AABB aabb, Interval ray_t) {
+bool hit_aabb(Ray ray, Interval ray_t,  AABB aabb) {
     for (int axis = 0; axis < 3; axis++) {
         Interval ax = axis_interval(axis, aabb);
         float adinv = 1.0 / ray.dir[axis];
