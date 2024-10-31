@@ -32,6 +32,11 @@ public abstract class RaytraceModel {
         return bbox;
     }
 
+    protected void putToBuffer(ByteBuffer buffer) {
+        // If this method is not overridden, the model should not write data into buffers.
+        throw new IllegalStateException("This model should not write data to buffer!");
+    }
+
     public static void addModel(RaytraceModel model) {
         // Since we only have sphere models now, we assume it is always sphere.
         SPHERES.add((Sphere) model);
