@@ -126,8 +126,20 @@ bool hit_quad(Ray ray, Interval ray_t, vec3 normal, vec3 q, vec3 u, vec3 v, vec3
     // Determine if the hit point lies within the planar shape using its plane coordinates.
     vec3 intersection = ray.o + ray.dir * t;
     vec3 planar_hitpt_vector = intersection - q;
-    float alpha = dot(w, cross(planar_hitpt_vector, v));
-    float beta = dot(w, cross(u, planar_hitpt_vector));
+
+    float delta, alpha, beta;
+
+    if((delta = u.x * v.y - u.y * v.x) != 0) {
+        alpha = (planar_hitpt_vector.x * v.y - planar_hitpt_vector.y * v.x) / delta;
+        beta = (planar_hitpt_vector.y * u.x - planar_hitpt_vector.x * u.y) / delta;
+    } else if((delta = u.x * v.z - u.z * v.x) != 0) {
+        alpha = (planar_hitpt_vector.x * v.z - planar_hitpt_vector.z * v.x) / delta;
+        beta = (planar_hitpt_vector.z * u.x - planar_hitpt_vector.x * u.z) / delta;
+    } else {
+        delta = u.y * v.z - u.z * v.y;
+        alpha = (planar_hitpt_vector.y * v.z - planar_hitpt_vector.z * v.y) / delta;
+        beta = (planar_hitpt_vector.z * u.y - planar_hitpt_vector.y * u.z) / delta;
+    }
 
     if (!is_interior(alpha, beta, hit_record.uv))
         return false;
