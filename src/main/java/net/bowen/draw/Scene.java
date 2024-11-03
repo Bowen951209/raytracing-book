@@ -4,6 +4,10 @@ import net.bowen.draw.materials.Dielectric;
 import net.bowen.draw.materials.Lambertian;
 import net.bowen.draw.materials.Material;
 import net.bowen.draw.materials.Metal;
+import net.bowen.draw.models.raytrace.Camera;
+import net.bowen.draw.models.raytrace.Quad;
+import net.bowen.draw.models.raytrace.RaytraceModel;
+import net.bowen.draw.models.raytrace.Sphere;
 import net.bowen.draw.textures.CheckerTexture;
 import net.bowen.draw.textures.ImageTexture;
 import net.bowen.draw.textures.Texture;
@@ -24,6 +28,8 @@ public final class Scene {
             case 1 -> checkerSpheres();
             case 2 -> earth();
             case 3 -> perlinSpheres();
+            case 4-> quads();
+            default -> throw new IllegalArgumentException("Invalid scene ID: " + sceneID);
         }
 
         Texture.putTextureIndices(computeProgram);
@@ -44,11 +50,14 @@ public final class Scene {
         RaytraceModel.addModel(new Sphere(0, -1000, 0, 1000, groundMaterial));
 
         Random random = new Random();
-        Vector3f center = new Vector3f();
         for (int a = -11; a < 11; a++) {
             for (int b = -11; b < 11; b++) {
                 double chooseMaterial = Math.random();
-                center.set(a + 0.9f * Math.random(), 0.2f, b + 0.9f * Math.random());
+                Vector3f center = new Vector3f(
+                        (float) (a + 0.9f * Math.random()),
+                        0.2f,
+                        (float) (b + 0.9f * Math.random())
+                );
 
                 if ((new Vector3f(center).sub(4, 0.2f, 0)).length() > 0.9f) {
                     Material sphereMaterial;
@@ -134,6 +143,28 @@ public final class Scene {
 
         camera.setVerticalFOV(20);
         camera.setLookFrom(13, 2, 3);
+        camera.setLookAt(0, 0, 0);
+        camera.setDefocusAngle(0);
+    }
+
+
+    private void quads() {
+        Material leftRed     = new Lambertian(1.0f, 0.2f, 0.2f);
+        Material backGreen   = new Lambertian(0.2f, 1.0f, 0.2f);
+        Material rightBlue   = new Lambertian(0.2f, 0.2f, 1.0f);
+        Material upperOrange = new Lambertian(1.0f, 0.5f, 0.0f);
+        Material lowerTeal   = new Lambertian(0.2f, 0.8f, 0.8f);
+
+        RaytraceModel.addModel(new Quad(new Vector3f(-3,-2, 5), new Vector3f(0, 0,-4), new Vector3f(0, 4, 0), leftRed));
+        RaytraceModel.addModel(new Quad(new Vector3f(-2,-2, 0), new Vector3f(4, 0, 0), new Vector3f(0, 4, 0), backGreen));
+        RaytraceModel.addModel(new Quad(new Vector3f( 3,-2, 1), new Vector3f(0, 0, 4), new Vector3f(0, 4, 0), rightBlue));
+        RaytraceModel.addModel(new Quad(new Vector3f(-2, 3, 1), new Vector3f(4, 0, 0), new Vector3f(0, 0, 4), upperOrange));
+        RaytraceModel.addModel(new Quad(new Vector3f(-2,-3, 5), new Vector3f(4, 0, 0), new Vector3f(0, 0,-4), lowerTeal));
+
+        RaytraceModel.putModelsToProgram();
+
+        camera.setVerticalFOV(80);
+        camera.setLookFrom(0, 0, 9);
         camera.setLookAt(0, 0, 0);
         camera.setDefocusAngle(0);
     }

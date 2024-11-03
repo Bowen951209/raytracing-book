@@ -1,4 +1,4 @@
-package net.bowen.draw;
+package net.bowen.draw.models.rasterization;
 
 import net.bowen.system.VertexArrayObject;
 import net.bowen.system.BufferObject;

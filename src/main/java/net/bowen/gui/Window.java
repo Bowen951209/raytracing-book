@@ -5,6 +5,7 @@ import imgui.flag.ImGuiConfigFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
 import net.bowen.draw.*;
+import net.bowen.draw.models.rasterization.Quad;
 import net.bowen.draw.textures.Texture;
 import net.bowen.system.*;
 import org.lwjgl.Version;
@@ -36,12 +37,12 @@ public class Window {
     private long windowHandle;
     private int width, height;
     private Quad screenQuad;
-    private Texture quadTexture;
+    private Texture screenQuadTexture;
     private GuiRenderer guiRenderer;
     private RaytraceExecutor raytraceExecutor;
     private Scene scene;
 
-    ShaderProgram quadProgram, computeProgram;
+    ShaderProgram screenQuadProgram, computeProgram;
 
     public Window(String title, int width, int height, int sceneId) {
         this.title = title;
@@ -62,7 +63,7 @@ public class Window {
 
         initGLFW();
         initShaderPrograms();
-        initQuadTexture();
+        initScreenQuad();
         initModels();
         initRaytraceExecutor();
         initImGui();
@@ -108,7 +109,7 @@ public class Window {
             glViewport(0, 0, width, height);
 
             // Resize textures and camera.
-            quadTexture.resize(width, height);
+            screenQuadTexture.resize(width, height);
             scene.updateCamera(width, height);
 
             // Reset raytrace state.
@@ -166,10 +167,10 @@ public class Window {
     }
 
     private void initShaderPrograms() {
-        quadProgram = new ShaderProgram();
-        quadProgram.attachShader(new Shader("shaders/plainTextureShaders/vert.glsl", GL_VERTEX_SHADER));
-        quadProgram.attachShader(new Shader("shaders/plainTextureShaders/frag.glsl", GL_FRAGMENT_SHADER));
-        quadProgram.link();
+        screenQuadProgram = new ShaderProgram();
+        screenQuadProgram.attachShader(new Shader("shaders/plainTextureShaders/vert.glsl", GL_VERTEX_SHADER));
+        screenQuadProgram.attachShader(new Shader("shaders/plainTextureShaders/frag.glsl", GL_FRAGMENT_SHADER));
+        screenQuadProgram.link();
 
         computeProgram = new ShaderProgram();
         computeProgram.attachShader(new Shader("shaders/raytrace/compute.glsl", GL_COMPUTE_SHADER));
@@ -177,22 +178,25 @@ public class Window {
     }
 
     private void initModels() {
-        screenQuad = new Quad(-1.0f, 1.0f, 2.0f, 2.0f);
         scene = new Scene(sceneId, width, height, computeProgram);
     }
 
-    private void initQuadTexture() {
-        quadTexture = new Texture(width, height, GL_RGBA32F, GL_RGBA, GL_FLOAT, null);
+    private void initScreenQuad() {
+        // Screen quad texture
+        screenQuadTexture = new Texture(width, height, GL_RGBA32F, GL_RGBA, GL_FLOAT, null);
         Texture.active(0);
-        quadTexture.bind();
-        quadTexture.bindAsImage(0, GL_WRITE_ONLY, GL_RGBA32F);
+        screenQuadTexture.bind();
+        screenQuadTexture.bindAsImage(0, GL_WRITE_ONLY, GL_RGBA32F);
 
-        int texLocation = quadProgram.getUniformLocation("tex_sampler");
+        int texLocation = screenQuadProgram.getUniformLocation("tex_sampler");
         glUniform1i(texLocation, 0); // 0 corresponds to GL_TEXTURE0
+
+        // Screen quad model
+        screenQuad = new Quad(-1.0f, 1.0f, 2.0f, 2.0f);
     }
 
     private void initRaytraceExecutor() {
-        raytraceExecutor = new RaytraceExecutor(quadTexture, computeProgram);
+        raytraceExecutor = new RaytraceExecutor(screenQuadTexture, computeProgram);
         raytraceExecutor.addCompleteListener(
                 () -> System.out.println("All samples have completed in " + raytraceExecutor.getFinishTime() + " ms.")
         );
@@ -202,9 +206,9 @@ public class Window {
      * Draw the raytracing result to the frame buffer.
      */
     private void drawResult() {
-        quadProgram.use();
+        screenQuadProgram.use();
         Texture.active(0);
-        quadTexture.bind();
+        screenQuadTexture.bind();
         screenQuad.draw();
     }
 

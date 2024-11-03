@@ -1,4 +1,4 @@
-package net.bowen.draw;
+package net.bowen.draw.models.raytrace;
 
 import net.bowen.math.Interval;
 import org.joml.Vector3f;
@@ -19,12 +19,16 @@ public class AABB extends RaytraceModel {
         this.x.set(x);
         this.y.set(y);
         this.z.set(z);
+
+        padToMinimums();
     }
 
     public AABB(Vector3f pointA, Vector3f pointB) {
         x.set(min(pointA.x, pointB.x), max(pointA.x, pointB.x));
         y.set(min(pointA.y, pointB.y), max(pointA.y, pointB.y));
         z.set(min(pointA.z, pointB.z), max(pointA.z, pointB.z));
+
+        padToMinimums();
     }
 
     public AABB(AABB box1, AABB box2) {
@@ -50,5 +54,14 @@ public class AABB extends RaytraceModel {
             return x.size() > z.size() ? 0 : 2;
         else
             return y.size() > z.size() ? 1 : 2;
+    }
+
+    private void padToMinimums() {
+        // Adjust the AABB so that no side is narrower than some delta, padding if necessary.
+
+        float delta = 0.0001f;
+        if (x.size() < delta) x.expand(delta);
+        if (y.size() < delta) y.expand(delta);
+        if (z.size() < delta) z.expand(delta);
     }
 }

@@ -1,4 +1,4 @@
-package net.bowen.draw;
+package net.bowen.draw.models.rasterization;
 
 import static org.lwjgl.opengl.GL15.*;
 
