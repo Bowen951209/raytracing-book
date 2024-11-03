@@ -33,11 +33,6 @@ public abstract class RaytraceModel {
         return bbox;
     }
 
-    protected void putToBuffer(ByteBuffer buffer) {
-        // If this method is not overridden, the model should not write data into buffers.
-        throw new IllegalStateException("This model should not write data to buffer!");
-    }
-
     protected int getModelId() {
         //  If this method is not overridden, the model should not have a valid model id.
         return -1;

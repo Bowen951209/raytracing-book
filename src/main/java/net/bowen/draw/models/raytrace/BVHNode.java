@@ -46,7 +46,6 @@ public class BVHNode extends RaytraceModel {
         }
     }
 
-    @Override
     protected void putToBuffer(ByteBuffer buffer) {
         buffer.putFloat(bbox.x.min).putFloat(bbox.x.max);
         buffer.putFloat(bbox.y.min).putFloat(bbox.y.max);

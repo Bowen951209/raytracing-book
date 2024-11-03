@@ -32,7 +32,6 @@ public class Sphere extends RaytraceModel {
         bbox = new AABB(box1, box2);
     }
 
-    @Override
     protected void putToBuffer(ByteBuffer buffer) {
         // Center position (vec3)
         DataUtils.putToBuffer(center1, buffer);

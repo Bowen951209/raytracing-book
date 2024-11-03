@@ -41,7 +41,6 @@ public class Quad extends RaytraceModel{
         bbox = new AABB(bboxDiagonal1, bboxDiagonal2);
     }
 
-    @Override
     protected void putToBuffer(ByteBuffer buffer) {
         DataUtils.putToBuffer(normal, buffer);
         buffer.putFloat(d);
