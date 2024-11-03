@@ -8,8 +8,6 @@ import java.nio.ByteBuffer;
 import static org.lwjgl.opengl.GL43.*;
 
 public class CheckerTexture extends Texture {
-    private static final int TEXTURE_TYPE_ID = 2;
-
     private final float scale;
 
     private CheckerTexture(ByteBuffer buffer, float scale) {
@@ -36,7 +34,7 @@ public class CheckerTexture extends Texture {
 
     @Override
     protected int getTextureTypeId() {
-        return TEXTURE_TYPE_ID;
+        return CHECKER;
     }
 
     @Override

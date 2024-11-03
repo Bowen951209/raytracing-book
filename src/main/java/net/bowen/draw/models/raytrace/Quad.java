@@ -27,8 +27,7 @@ public class Quad extends RaytraceModel{
         this.u = u;
         this.v = v;
         this.material = material;
-        Vector3f n = new Vector3f(u).cross(v);
-        this.normal = new Vector3f(n).normalize();
+        this.normal = new Vector3f(u).cross(v).normalize();
         this.d = new Vector3f(normal).dot(q);
 
         setBoundingBox();
@@ -45,16 +44,10 @@ public class Quad extends RaytraceModel{
         DataUtils.putToBuffer(normal, buffer);
         buffer.putFloat(d);
         DataUtils.putToBuffer(q, buffer);
-        buffer.putInt(material.getValue());
+        buffer.putInt(material.getMaterialPackedValue());
         DataUtils.putToBuffer(u, buffer);
-        buffer.putFloat(0); // padding
+        buffer.putInt(material.getTexturePackedValue());
         DataUtils.putToBuffer(v, buffer);
-        buffer.putFloat(0); // padding
-
-        float[] albedo = material.getAlbedo();
-        buffer.putFloat(albedo[0]); // r
-        buffer.putFloat(albedo[1]); // g
-        buffer.putFloat(albedo[2]); // b
         buffer.putFloat(0); // padding
     }
 

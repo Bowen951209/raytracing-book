@@ -20,6 +20,10 @@ public class Color {
         return new Color(RANDOM.nextFloat(min, max), RANDOM.nextFloat(min, max), RANDOM.nextFloat(min, max));
     }
 
+    public java.awt.Color getAWTColor() {
+        return new java.awt.Color(r, g, b);
+    }
+
     public Color mul(Color c){
         r *= c.r;
         g *= c.g;

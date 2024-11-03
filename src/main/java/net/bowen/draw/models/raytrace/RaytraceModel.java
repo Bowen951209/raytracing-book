@@ -93,9 +93,9 @@ public abstract class RaytraceModel {
         // - 1 int for material id.
         // - 3 floats for center vector (vec3)
         // - 1 float for radius
-        // - 3 floats for albedo (vec3)
-        // - 1 float for material
-        ByteBuffer buffer = MemoryUtil.memAlloc(SPHERES.size() * 12 * Byte.SIZE);
+        // - 1 int for material
+        // - 4 int paddings
+        ByteBuffer buffer = MemoryUtil.memAlloc(SPHERES.size() * 12 * Float.BYTES);
         for (Sphere sphere : SPHERES)
             sphere.putToBuffer(buffer);
         buffer.flip();
@@ -108,8 +108,15 @@ public abstract class RaytraceModel {
     }
 
     private static void putQuadsToProgram() {
-        //TODO: describe structure
-        ByteBuffer buffer = MemoryUtil.memAlloc(QUADS.size() * 20 * Byte.SIZE);
+        // - 3 floats for normal (vec3)
+        // - 1 float for d
+        // - 3 floats for q (vec3)
+        // - 1 int for material id
+        // - 3 floats for u (vec3)
+        // - 1 int for texture id
+        // - 3 floats for v (vec3)
+        // - 1 int padding
+        ByteBuffer buffer = MemoryUtil.memAlloc(QUADS.size() * 16 * Float.BYTES);
         for (Quad quad : QUADS)
             quad.putToBuffer(buffer);
         buffer.flip();
@@ -127,7 +134,7 @@ public abstract class RaytraceModel {
         // - 2 floats for z interval.
         // - 1 float for left id.
         // - 1 float for right id.
-        ByteBuffer buffer = MemoryUtil.memAlloc(BVH_NODES.size() * 8 * Byte.SIZE);
+        ByteBuffer buffer = MemoryUtil.memAlloc(BVH_NODES.size() * 8 * Float.BYTES);
         for (BVHNode bvhNode : BVH_NODES) {
             bvhNode.putToBuffer(buffer);
         }

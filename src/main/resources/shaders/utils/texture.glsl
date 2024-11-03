@@ -1,6 +1,7 @@
 const int TEXTURE_IMAGE = 1;
 const int TEXTURE_CHECKER = 2;
 const int TEXTURE_PERLIN = 3;
+const int TEXTURE_SOLID = 4;
 
 
 vec3 checkerboard(vec3 p, float scale, int tex_idx) {
@@ -110,7 +111,7 @@ vec2 get_sphere_uv(vec3 p) {
 
 vec3 texture_color(vec3 p, int id, vec2 uv) {
     // Extract detail from the lower 12 bits (bits 0 to 11)
-    int detail_bits = id & 0xFFF;
+    int detail_i = id & 0xFFF;
 
     // Extract index from the middle 16 bits (bits 12 to 27)
     int index = (id >> 12) & 0xFFFF;
@@ -119,13 +120,13 @@ vec3 texture_color(vec3 p, int id, vec2 uv) {
     int texture_type = (id >> 28) & 0xF;
 
     // Convert the 12-bit detail integer back to a float (range [0, 1])
-    float detail = float(detail_bits) / 4095.0;
-
+    float detail_f = float(detail_i) / 4095.0;
 
     switch(texture_type) {
-        case TEXTURE_CHECKER: return checkerboard(p, detail, index);
+        case TEXTURE_CHECKER: return checkerboard(p, detail_f, index);
         case TEXTURE_IMAGE: return texture2D(textures[index], uv).rgb;
-        case TEXTURE_PERLIN: return perlin_noise_color(p, detail * 100, index); // detail * 100 is the scale for perlin noise
+        case TEXTURE_PERLIN: return perlin_noise_color(p, detail_f * 100, index); // detail * 100 is the scale for perlin noise
+        case TEXTURE_SOLID: return texelFetch(textures[index], ivec2(detail_i, 0), 0).rgb; // detail is the row index
         default: return vec3(0.0, 0.0, 0.0);
     }
 }

@@ -1,6 +1,5 @@
 package net.bowen.draw.materials;
 
-import net.bowen.draw.Color;
 import net.bowen.draw.textures.Texture;
 
 public abstract class Material {
@@ -9,42 +8,31 @@ public abstract class Material {
     public static final int DIELECTRIC = 2;
 
     protected final int materialId;
-
-    protected float[] albedo;
-
-    private int texturePackedValue = -1;
-
-    public Material(int materialId, Color color) {
-        this(materialId, color.r, color.g, color.b);
-    }
-
-    public Material(int materialId, float albedoR, float albedoG, float albedoB) {
-        this.materialId = materialId;
-        albedo = new float[] {albedoR, albedoG, albedoB};
-    }
+    private final int texturePackedValue;
 
     public Material(int materialId, Texture texture) {
         this.materialId = materialId;
         this.texturePackedValue = texture.getValue();
     }
 
+    public Material(int materialId, int texturePackedValue) {
+        this.materialId = materialId;
+        this.texturePackedValue = texturePackedValue;
+    }
+
     /**
      * @return A packed value where upper 16 bits is the material id, and the lower 16 bits is whatever data a type
      * of texture want to store. For example, metal stores its fuzz value in the lower 16 bits.
      */
-    public int getValue() {
+    public int getMaterialPackedValue() {
         return materialId << 16;
-    }
-
-    public float[] getAlbedo() {
-        return albedo != null ? albedo : new float[3];
     }
 
     /**
      * @return The packed int of texture.
      * @see Texture#getValue()
      */
-    public int getTextureValue() {
+    public int getTexturePackedValue() {
         return texturePackedValue;
     }
 }

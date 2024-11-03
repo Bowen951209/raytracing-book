@@ -34,7 +34,6 @@ import static org.lwjgl.opengl.GL43.*;
  * fractional digits of 0, in order to be aligned with the random vector arrays.
  */
 public class PerlinNoiseTexture extends Texture {
-    private static final int TEXTURE_TYPE_ID = 3;
     private static final int POINT_COUNT = 256;
 
     private final float scale;
@@ -46,7 +45,7 @@ public class PerlinNoiseTexture extends Texture {
 
     @Override
     protected int getTextureTypeId() {
-        return TEXTURE_TYPE_ID;
+        return PERLIN;
     }
 
     @Override
