@@ -111,7 +111,7 @@ bool is_interior(float a, float b, out vec2 uv) {
     return true;
 }
 
-bool hit_quad(Ray ray, Interval ray_t, vec3 normal, vec3 q, vec3 u, vec3 v, vec3 w, float d, inout HitRecord hit_record) {
+bool hit_quad(Ray ray, Interval ray_t, vec3 normal, vec3 q, vec3 u, vec3 v, float d, inout HitRecord hit_record) {
     float denom = dot(normal, ray.dir);
 
     // No hit if the ray is parallel to the plane.
@@ -160,7 +160,7 @@ bool hit_model(Ray ray, Interval ray_t, int model_idx, int model_type, inout Hit
             return hit_sphere(ray, ray_t, sphere.center1, sphere.center_vec, sphere.radius, hit_record);
         case 2:
             Quad quad = quads[model_idx];
-            return hit_quad(ray, ray_t, quad.normal, quad.q, quad.u, quad.v, quad.w, quad.d, hit_record);
+            return hit_quad(ray, ray_t, quad.normal, quad.q, quad.u, quad.v, quad.d, hit_record);
         default:
             return false;
     }

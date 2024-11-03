@@ -114,7 +114,7 @@ public abstract class RaytraceModel {
 
     private static void putQuadsToProgram() {
         //TODO: describe structure
-        ByteBuffer buffer = MemoryUtil.memAlloc(QUADS.size() * 24 * Byte.SIZE);
+        ByteBuffer buffer = MemoryUtil.memAlloc(QUADS.size() * 20 * Byte.SIZE);
         for (Quad quad : QUADS)
             quad.putToBuffer(buffer);
         buffer.flip();

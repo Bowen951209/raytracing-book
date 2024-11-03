@@ -78,7 +78,6 @@ struct Quad {
     int material; // the packed material value.
     vec3 u; // a component vector that structs the quad.
     vec3 v; // a component vector that structs the quad.
-    vec3 w; // a vector for hit calculation.
     vec3 albedo;
 };
 

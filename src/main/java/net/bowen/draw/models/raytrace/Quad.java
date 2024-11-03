@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
 public class Quad extends RaytraceModel{
     public static final int MODEL_ID = 2;
 
-    private final Vector3f q, u, v, w, normal;
+    private final Vector3f q, u, v, normal;
     private final float d;
     private final Material material;
 
@@ -30,7 +30,6 @@ public class Quad extends RaytraceModel{
         Vector3f n = new Vector3f(u).cross(v);
         this.normal = new Vector3f(n).normalize();
         this.d = new Vector3f(normal).dot(q);
-        this.w = new Vector3f(n).div(n.lengthSquared());
 
         setBoundingBox();
     }
@@ -51,8 +50,6 @@ public class Quad extends RaytraceModel{
         DataUtils.putToBuffer(u, buffer);
         buffer.putFloat(0); // padding
         DataUtils.putToBuffer(v, buffer);
-        buffer.putFloat(0); // padding
-        DataUtils.putToBuffer(w, buffer);
         buffer.putFloat(0); // padding
 
         float[] albedo = material.getAlbedo();
