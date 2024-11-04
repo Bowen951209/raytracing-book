@@ -20,8 +20,6 @@ public final class Scene {
     public Scene(int sceneID, int initImageWidth, int initImageHeight, ShaderProgram computeProgram) {
         RaytraceModel.initSSBOs();
 
-        SolidTexture.init();
-
         switch (sceneID) {
             case 0 -> bouncingSpheres();
             case 1 -> checkerSpheres();
@@ -30,8 +28,6 @@ public final class Scene {
             case 4-> quads();
             default -> throw new IllegalArgumentException("Invalid scene ID: " + sceneID);
         }
-
-        SolidTexture.putDataToTexture();
 
         Texture.putTextureIndices(computeProgram);
         camera.setImageSize(initImageWidth, initImageHeight);
@@ -45,9 +41,12 @@ public final class Scene {
     }
 
     private void bouncingSpheres() {
+        SolidTexture.init();
+        CheckerTexture.init();
+
         Material mat = new Lambertian(SolidTexture.registerColor(0.5f, 0.5f, 0.5f));
         RaytraceModel.addModel(new Sphere(0, -1, 0, 0.5f, mat));
-        Material groundMaterial = new Lambertian(CheckerTexture.create(.2f, .3f, .1f, .9f, .9f, .9f, .32f));
+        Material groundMaterial = new Lambertian(CheckerTexture.registerColor(.2f, .3f, .1f, .9f, .9f, .9f, .32f));
         RaytraceModel.addModel(new Sphere(0, -1000, 0, 1000, groundMaterial));
 
         Random random = new Random();
@@ -94,6 +93,8 @@ public final class Scene {
         RaytraceModel.addModel(new Sphere(4, 1, 0, 1, material3));
 
         RaytraceModel.putModelsToProgram();
+        SolidTexture.putDataToTexture();
+        CheckerTexture.putDataToTexture();
 
         camera.setVerticalFOV(20);
         camera.setLookFrom(13, 2, 3);
@@ -103,13 +104,16 @@ public final class Scene {
     }
 
     private void checkerSpheres() {
-        Texture checker1 = CheckerTexture.create(.2f, .3f, .1f, .9f, .9f, .9f, 0.32f);
-        Texture checker2 = CheckerTexture.create(.5f, .2f, .1f, .9f, .9f, .9f, 0.32f);
+        CheckerTexture.init();
+
+        int checker1 = CheckerTexture.registerColor(.2f, .3f, .1f, .9f, .9f, .9f, 0.32f);
+        int checker2 = CheckerTexture.registerColor(.5f, .2f, .1f, .9f, .9f, .9f, 0.32f);
 
         RaytraceModel.addModel(new Sphere(0, -10, 0, 10, new Lambertian(checker1)));
         RaytraceModel.addModel(new Sphere(0, 10, 0, 10, new Lambertian(checker2)));
 
         RaytraceModel.putModelsToProgram();
+        CheckerTexture.putDataToTexture();
 
         camera.setVerticalFOV(20);
         camera.setLookFrom(13, 2, 3);
@@ -150,6 +154,8 @@ public final class Scene {
 
 
     private void quads() {
+        SolidTexture.init();
+
         Material leftRed     = new Lambertian(SolidTexture.registerColor(1.0f, 0.2f, 0.2f));
         Material backGreen   = new Lambertian(SolidTexture.registerColor(0.2f, 1.0f, 0.2f));
         Material rightBlue   = new Lambertian(SolidTexture.registerColor(0.2f, 0.2f, 1.0f));
@@ -163,6 +169,7 @@ public final class Scene {
         RaytraceModel.addModel(new Quad(new Vector3f(-2,-3, 5), new Vector3f(4, 0, 0), new Vector3f(0, 0,-4), lowerTeal));
 
         RaytraceModel.putModelsToProgram();
+        SolidTexture.putDataToTexture();
 
         camera.setVerticalFOV(80);
         camera.setLookFrom(0, 0, 9);

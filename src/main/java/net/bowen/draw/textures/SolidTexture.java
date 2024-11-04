@@ -40,7 +40,7 @@ public class SolidTexture extends Texture {
 
     public static int registerColor(Color color) {
         COLORS.add(color);
-        int detail = COLORS.size() - 1;
+        int detail = COLORS.size() - 1; // detail is the index in the texture
         return getValue(SOLID, textureIndex, detail);
     }
 

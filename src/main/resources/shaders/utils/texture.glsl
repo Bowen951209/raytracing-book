@@ -3,17 +3,17 @@ const int TEXTURE_CHECKER = 2;
 const int TEXTURE_PERLIN = 3;
 const int TEXTURE_SOLID = 4;
 
-
-vec3 checkerboard(vec3 p, float scale, int tex_idx) {
+vec3 checkerboard(vec3 p, int tex_idx, int pix_idx) {
+    float scale = texelFetch(textures[tex_idx], ivec2(pix_idx + 2, 0), 0).r;
     float inv_scale = 1.0 / scale;
 
     ivec3 ip = ivec3(p * inv_scale);
     bool is_even = (ip.x + ip.y + ip.z) % 2 == 0;
 
     if (is_even)
-        return texture2D(textures[tex_idx], vec2(0, 0)).rgb;
+        return texelFetch(textures[tex_idx], ivec2(pix_idx, 0), 0).rgb;
     else
-        return texture2D(textures[tex_idx], vec2(1, 0)).rgb;
+        return texelFetch(textures[tex_idx], ivec2(pix_idx + 1, 0), 0).rgb;
 }
 
 float perlin_interp(vec3 c[2][2][2], float u, float v, float w) {
@@ -123,7 +123,7 @@ vec3 texture_color(vec3 p, int id, vec2 uv) {
     float detail_f = float(detail_i) / 4095.0;
 
     switch(texture_type) {
-        case TEXTURE_CHECKER: return checkerboard(p, detail_f, index);
+        case TEXTURE_CHECKER: return checkerboard(p, index, detail_i * 3);
         case TEXTURE_IMAGE: return texture2D(textures[index], uv).rgb;
         case TEXTURE_PERLIN: return perlin_noise_color(p, detail_f * 100, index); // detail * 100 is the scale for perlin noise
         case TEXTURE_SOLID: return texelFetch(textures[index], ivec2(detail_i, 0), 0).rgb; // detail is the row index
