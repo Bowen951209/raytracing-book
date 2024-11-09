@@ -63,7 +63,6 @@ struct Sphere {
     int texture_id;
     vec3 center_vec;
     float radius;
-    vec3 albedo;
 
     // The material value is a packed value. The upper 16 bits stores the model id, and the lower 16 bits stores the
     // data for varying information according to the material type. For example, metal material has its fuzz value in
@@ -77,8 +76,8 @@ struct Quad {
     vec3 q; // the origin for u and v.
     int material; // the packed material value.
     vec3 u; // a component vector that structs the quad.
+    int texture_id; // texture information
     vec3 v; // a component vector that structs the quad.
-    vec3 albedo;
 };
 
 struct Interval {
@@ -200,18 +199,13 @@ void set_material_and_albedo(int model_idx, int model_type, vec3 p, vec2 uv) {
     switch(model_type) {
         case 1: // sphere
             Sphere sphere = spheres[model_idx];
-
             material = sphere.material;
-            // If no texture is specified, use albedo values, else get the texture color.
-            if(sphere.texture_id == -1)
-                albedo = sphere.albedo;
-            else
-                albedo = texture_color(p, sphere.texture_id, uv);
+            albedo = texture_color(p, sphere.texture_id, uv);
             return;
         case 2: // quad
             Quad quad = quads[model_idx];
             material = quad.material;
-            albedo = quad.albedo;//todo: texture
+            albedo = texture_color(p, quad.texture_id, uv);
             return;
     }
 }

@@ -1,18 +1,13 @@
 package net.bowen.draw.materials;
 
-import net.bowen.draw.Color;
 import net.bowen.draw.textures.Texture;
 
-public class Lambertian extends Material{
-    public Lambertian(float albedoR, float albedoG, float albedoB) {
-        super(LAMBERTIAN, albedoR, albedoG, albedoB);
-    }
-
-    public Lambertian(Color color) {
-        super(LAMBERTIAN, color);
-    }
-
+public class Lambertian extends Material {
     public Lambertian(Texture texture) {
         super(LAMBERTIAN, texture);
+    }
+
+    public Lambertian(int texturePackedValue) {
+        super(LAMBERTIAN, texturePackedValue);
     }
 }

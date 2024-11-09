@@ -36,8 +36,8 @@ public class Sphere extends RaytraceModel {
         // Center position (vec3)
         DataUtils.putToBuffer(center1, buffer);
 
-        // Material id.
-        buffer.putInt(material.getTextureValue());
+        // Material id (int).
+        buffer.putInt(material.getTexturePackedValue());
 
         // Center vector (vec3)
         DataUtils.putToBuffer(vec12, buffer);
@@ -45,14 +45,11 @@ public class Sphere extends RaytraceModel {
         // Radius (float)
         buffer.putFloat(radius);
 
-        // Albedo (vec3)
-        float[] albedo = material.getAlbedo();
-        buffer.putFloat(albedo[0]); // r
-        buffer.putFloat(albedo[1]); // g
-        buffer.putFloat(albedo[2]); // b
-
         // Material (int)
-        buffer.putInt(material.getValue());
+        buffer.putInt(material.getMaterialPackedValue());
+
+        // Paddings.
+        buffer.putInt(0).putInt(0).putInt(0);
     }
 
     @Override
