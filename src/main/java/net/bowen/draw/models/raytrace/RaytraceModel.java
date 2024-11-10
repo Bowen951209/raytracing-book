@@ -116,7 +116,9 @@ public abstract class RaytraceModel {
         // - 1 int for texture id
         // - 3 floats for v (vec3)
         // - 1 int padding
-        ByteBuffer buffer = MemoryUtil.memAlloc(QUADS.size() * 16 * Float.BYTES);
+        // - 3 floats for emission (vec3)
+        // - 1 int padding
+        ByteBuffer buffer = MemoryUtil.memAlloc(QUADS.size() * 20 * Float.BYTES);
         for (Quad quad : QUADS)
             quad.putToBuffer(buffer);
         buffer.flip();

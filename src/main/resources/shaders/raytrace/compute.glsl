@@ -8,6 +8,7 @@ const float INFINITY = 3.402823E+38;
 const int MATERIAL_LAMBERTIAN = 0;
 const int MATERIAL_METAL = 1;
 const int MATERIAL_DIELECTRIC = 2;
+const int MATERIAL_DIFFUSE_LIGHT = 3;
 const int PERLIN_POINT_COUNT = 256;
 
 // Values for extracting the IOR/eta from  material_val.
@@ -20,6 +21,7 @@ uniform int max_depth;        // Maximum number of ray bounces into scene.
 uniform float last_color_scale; // The color scale last time dispatch call applied.
 uniform float this_color_scale; // The color scale this time dispatch call applies.
 uniform float u_rand_factor; // The initial random vector. This is for varying randomness from call to call.
+uniform vec3 background; // The background color of the scene.
 
 layout(std140, binding = 0) uniform Camera {
     float viewport_width;
@@ -39,6 +41,7 @@ vec2 pixel_coord;
 float rand_factor = u_rand_factor;
 float time; // a factor that is in range [0, 1).
 vec3 albedo;
+vec3 color_from_emission;
 int material;
 
 struct Ray {
@@ -64,6 +67,8 @@ struct Sphere {
     vec3 center_vec;
     float radius;
 
+    vec3 emission;
+
     // The material value is a packed value. The upper 16 bits stores the model id, and the lower 16 bits stores the
     // data for varying information according to the material type. For example, metal material has its fuzz value in
     // the lower 16 bits.
@@ -78,6 +83,7 @@ struct Quad {
     vec3 u; // a component vector that structs the quad.
     int texture_id; // texture information
     vec3 v; // a component vector that structs the quad.
+    vec3 emission;
 };
 
 struct Interval {
@@ -157,11 +163,13 @@ bool near_zero(vec3 v) {
 bool scatter(inout vec3 ray_dir, vec3 normal, bool is_front_face, int material_val) {
     // Extract material ID from the upper 16 bits
     int material_id = (material_val >> 16) & 0xFFFF;
+    bool should_scatter;
 
     switch (material_id) {
         case MATERIAL_LAMBERTIAN: {
             ray_dir = lambertian_scatter(normal);
-            return true;
+            should_scatter = true;
+            break;
         }
         case MATERIAL_METAL: {
             // Extract fuzz from the lower 16 bits
@@ -171,7 +179,8 @@ bool scatter(inout vec3 ray_dir, vec3 normal, bool is_front_face, int material_v
             float fuzz = float(fuzz_quantized) / 65535.0;
 
             metal_scatter(ray_dir, normal, fuzz);
-            return dot(ray_dir, normal) > 0.0; // check if the ray is absorbed by the metal
+            should_scatter =  dot(ray_dir, normal) > 0.0; // check if the ray is absorbed by the metal
+            break;
         }
         case MATERIAL_DIELECTRIC: {
             // Extract quantized IOR from the lower 16 bits
@@ -185,9 +194,17 @@ bool scatter(inout vec3 ray_dir, vec3 normal, bool is_front_face, int material_v
 
             if(is_front_face) eta = 1.0 / eta;
             refract_scatter(ray_dir, normal, eta);
-            return true;
+            should_scatter =  true;
+            break;
         }
+        case MATERIAL_DIFFUSE_LIGHT: return false;
     }
+
+    // Catch degenerate scatter direction.
+    if (near_zero(ray_dir))
+        ray_dir = normal;
+
+    return should_scatter;
 }
 
 int get_node_type(int id) {
@@ -195,17 +212,19 @@ int get_node_type(int id) {
     return id;
 }
 
-void set_material_and_albedo(int model_idx, int model_type, vec3 p, vec2 uv) {
+void set_material_properties(int model_idx, int model_type, vec3 p, vec2 uv) {
     switch(model_type) {
         case 1: // sphere
             Sphere sphere = spheres[model_idx];
             material = sphere.material;
             albedo = texture_color(p, sphere.texture_id, uv);
+            color_from_emission = sphere.emission;
             return;
         case 2: // quad
             Quad quad = quads[model_idx];
             material = quad.material;
             albedo = texture_color(p, quad.texture_id, uv);
+            color_from_emission = quad.emission;
             return;
     }
 }
@@ -236,7 +255,7 @@ bool trace_through_bvh(Ray ray, Interval ray_t, out HitRecord hit_record) {
                         has_hit = true;
                         ray_t.max = hit_record.t;
 
-                        set_material_and_albedo(model_idx, node_type, hit_record.p, hit_record.uv);
+                        set_material_properties(model_idx, node_type, hit_record.p, hit_record.uv);
                     }
                     model_idx = (node.right_id >> 16) & 0xFFFF;
                     node_type = get_node_type(node.right_id);
@@ -280,32 +299,29 @@ Ray get_ray(vec3 normal_coord) {
 }
 
 vec3 get_color(Ray ray) {
-    vec3 color = vec3(0.0);
-    vec3 color_scale = vec3(1.0);
+    vec3 final_color = vec3(0.0);
+    vec3 accumulated_attenuation = vec3(1.0); // Start with no attenuation
 
     HitRecord hit_record;
+    // Loop until we either reach the maximum recursion depth or stop scattering.
     for (int i = 0; i < max_depth; i++) {
-        if (trace_through_bvh(ray, Interval(0.001, INFINITY), hit_record)) {
-            if(scatter(ray.dir, hit_record.normal, hit_record.is_front_face, material)) {
-                // Catch degenerate scatter direction.
-                if (near_zero(ray.dir)) {
-                    ray.dir = hit_record.normal;
-                }
-                ray.o = hit_record.p;
-                color_scale *= albedo;
-                continue;
-            } else {
-                return vec3(0.0);
-            }
+        if (!trace_through_bvh(ray, Interval(0.001, INFINITY), hit_record)) {
+            final_color = accumulated_attenuation * background;
+            break;
         }
 
-        ray.dir = normalize(ray.dir);
-        float a = 0.5 * (ray.dir.y + 1.0);
-        color += ((1.0 - a) * vec3(1.0) + a * vec3(0.5, 0.7, 1.0)) * color_scale;
-        break;
+        if(!scatter(ray.dir, hit_record.normal, hit_record.is_front_face, material)) {
+            final_color = accumulated_attenuation * color_from_emission;
+            break;
+        }
+
+        // Update ray origin.
+        ray.o = hit_record.p;
+
+        accumulated_attenuation *= albedo;
     }
 
-    return linear_to_gamma(color);
+    return linear_to_gamma(final_color);
 }
 
 void main() {

@@ -45,11 +45,11 @@ public class Sphere extends RaytraceModel {
         // Radius (float)
         buffer.putFloat(radius);
 
+        // Emission (vec3)
+        DataUtils.putToBuffer(material.emitted(), buffer);
+
         // Material (int)
         buffer.putInt(material.getMaterialPackedValue());
-
-        // Paddings.
-        buffer.putInt(0).putInt(0).putInt(0);
     }
 
     @Override

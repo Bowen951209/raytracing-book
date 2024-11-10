@@ -1,7 +1,9 @@
 package net.bowen.draw.models.raytrace;
 
+import net.bowen.draw.Color;
 import net.bowen.system.BufferObject;
 import net.bowen.system.DataUtils;
+import net.bowen.system.ShaderProgram;
 import org.joml.Vector3f;
 import org.lwjgl.system.MemoryUtil;
 
@@ -38,6 +40,10 @@ public class Camera {
      * The up left position for the viewport in normal coordinate.
      */
     private final Vector3f upLeftPosition = new Vector3f();
+    /**
+     * The background color of the scene.
+     */
+    private final Color background = new Color();
 
 
     /**
@@ -72,14 +78,14 @@ public class Camera {
     /**
      * Init the camera and send the set data to the specified shader program.
      */
-    public void init() {
+    public void init(ShaderProgram program) {
         calculateProperties();
 
         // Init the UBO.
         ubo = new BufferObject(GL_UNIFORM_BUFFER);
         ubo.bind();
         glBindBufferBase(GL_UNIFORM_BUFFER, 0, ubo.getId());
-        putToShaderProgram();
+        putToShaderProgram(program);
     }
 
     public void calculateProperties() {
@@ -112,7 +118,8 @@ public class Camera {
         defocusDiskV.set(v).mul(defocusRadius);
     }
 
-    public void putToShaderProgram() {
+    public void putToShaderProgram(ShaderProgram program) {
+        // Put camera properties.
         FloatBuffer buffer = MemoryUtil.memAllocFloat(28);
         buffer.put(viewportWidth).put(viewportHeight).put(aspectRatio).put(defocusAngle);
         DataUtils.putToBuffer(lookFrom, buffer);
@@ -130,6 +137,9 @@ public class Camera {
         buffer.flip();
         ubo.uploadData(buffer, GL_STATIC_DRAW);
         MemoryUtil.memFree(buffer);
+
+        // Put background.
+        program.setUniform3fv("background", background.asArray());
     }
 
     /**
@@ -159,5 +169,9 @@ public class Camera {
 
     public void setFocusDist(float focusDist) {
         this.focusDist = focusDist;
+    }
+
+    public void setBackground(float r, float g, float b) {
+        background.set(r, g, b);
     }
 }

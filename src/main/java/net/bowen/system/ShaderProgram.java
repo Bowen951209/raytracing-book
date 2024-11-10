@@ -78,6 +78,11 @@ public class ShaderProgram extends Deleteable{
         glUniform1fv(getUniformLocation(name), value);
     }
 
+    public void setUniform3fv(String name, float[] value) {
+        use(); // Use the program first to put the uniform.
+        glUniform3fv(getUniformLocation(name), value);
+    }
+
     private void detachAndDeleteShaders() {
         for (Shader shader : attachedShaders) {
             glDetachShader(programId, shader.getId());
