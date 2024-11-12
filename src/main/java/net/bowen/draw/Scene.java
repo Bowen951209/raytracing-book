@@ -26,6 +26,7 @@ public final class Scene {
             case 3 -> perlinSpheres();
             case 4 -> quads();
             case 5 -> simpleLight();
+            case 6 -> cornellBox();
             default -> throw new IllegalArgumentException("Invalid scene ID: " + sceneID);
         }
 
@@ -194,9 +195,9 @@ public final class Scene {
                 diffLight
         ));
         RaytraceModel.addModel(new Quad(
-                new Vector3f(3,1,-2),
-                new Vector3f(2,0,0),
-                new Vector3f(0,2,0),
+                new Vector3f(3, 1, -2),
+                new Vector3f(2, 0, 0),
+                new Vector3f(0, 2, 0),
                 diffLight
         ));
 
@@ -205,6 +206,31 @@ public final class Scene {
         camera.setVerticalFOV(20);
         camera.setLookFrom(26, 3, 6);
         camera.setLookAt(0, 2, 0);
+        camera.setDefocusAngle(0);
+        camera.setBackground(0, 0, 0);
+    }
+
+    private void cornellBox() {
+        SolidTexture.init();
+
+        Material red = new Lambertian(SolidTexture.registerColor(0.65f, 0.05f, 0.05f));
+        Material white = new Lambertian(SolidTexture.registerColor(0.73f, 0.73f, 0.73f));
+        Material green = new Lambertian(SolidTexture.registerColor(0.12f, 0.45f, 0.15f));
+        Material light = new DiffuseLight(new Color(15, 15, 15));
+
+        RaytraceModel.addModel(new Quad(new Vector3f(555, 0, 0), new Vector3f(0, 555, 0), new Vector3f(0, 0, 555), green));
+        RaytraceModel.addModel(new Quad(new Vector3f(0, 0, 0), new Vector3f(0, 555, 0), new Vector3f(0, 0, 555), red));
+        RaytraceModel.addModel(new Quad(new Vector3f(343, 554, 332), new Vector3f(-130, 0, 0), new Vector3f(0, 0, -105), light));
+        RaytraceModel.addModel(new Quad(new Vector3f(0, 0, 0), new Vector3f(555, 0, 0), new Vector3f(0, 0, 555), white));
+        RaytraceModel.addModel(new Quad(new Vector3f(555, 555, 555), new Vector3f(-555, 0, 0), new Vector3f(0, 0, -555), white));
+        RaytraceModel.addModel(new Quad(new Vector3f(0, 0, 555), new Vector3f(555, 0, 0), new Vector3f(0, 555, 0), white));
+
+        RaytraceModel.putModelsToProgram();
+        SolidTexture.putDataToTexture();
+
+        camera.setVerticalFOV(40);
+        camera.setLookFrom(278, 278, -800);
+        camera.setLookAt(278, 278, 0);
         camera.setDefocusAngle(0);
         camera.setBackground(0, 0, 0);
     }
