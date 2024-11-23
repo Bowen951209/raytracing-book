@@ -59,7 +59,7 @@ public class AABB extends RaytraceModel {
     private void padToMinimums() {
         // Adjust the AABB so that no side is narrower than some delta, padding if necessary.
 
-        float delta = 0.0001f;
+        float delta = 0.001f;
         if (x.size() < delta) x.expand(delta);
         if (y.size() < delta) y.expand(delta);
         if (z.size() < delta) z.expand(delta);
