@@ -147,12 +147,6 @@ vec3 checkerboard(vec3 p);
 vec3 texture_color(vec3 p, int id, vec2 uv);
 bool hit_model(Ray ray, Interval ray_t, int model_idx, int model_type, inout HitRecord hit_record);
 
-// Transform the passed in linear-space color to gamma space using gamma value of 2.
-vec3 linear_to_gamma(vec3 linear_component) {
-    // Gamma value of 2 will make the calculation a square root:
-    return sqrt(linear_component);
-}
-
 bool near_zero(vec3 v) {
     float s = 1e-8;
     return abs(v.x) < s && abs(v.y) < s && abs(v.z) < s;
@@ -319,7 +313,7 @@ vec3 get_color(Ray ray) {
         accumulated_attenuation *= albedo;
     }
 
-    return linear_to_gamma(final_color);
+    return final_color;
 }
 
 void main() {
