@@ -16,10 +16,8 @@ const float MIN_IOR = 1.0;
 const float MAX_IOR = 2.5;
 
 uniform sampler2D textures[8];
-uniform int sample_per_pixel; // Count of samples for each pixel.
 uniform int max_depth;        // Maximum number of ray bounces into scene.
-uniform float last_color_scale; // The color scale last time dispatch call applied.
-uniform float this_color_scale; // The color scale this time dispatch call applies.
+uniform int frame_count; // The accumulated frame count.
 uniform float u_rand_factor; // The initial random vector. This is for varying randomness from call to call.
 uniform vec3 background; // The background color of the scene.
 
@@ -329,18 +327,12 @@ void main() {
     ivec2 i_pixel_coord = ivec2(pixel_coord);
     image_size = vec2(imageSize(img_output));
     time = rand();
+    Ray ray = get_ray(get_norm_coord());
 
     // Get the color in the img_ouput object and mix it with the color of this raytrace.
-    vec3 color = imageLoad(img_output, i_pixel_coord).rgb;
-    if(last_color_scale == 0.0) {
-        // Reset the color to zero if it's first sample.
-        color *= 0.0;
-    } else {
-        color /= last_color_scale; // to x1 color
-        color *= this_color_scale; // to x(1/render_count) color
-    }
-    Ray ray = get_ray(get_norm_coord());
-    color += get_color(ray) * this_color_scale;
+    vec3 previous_color = imageLoad(img_output, i_pixel_coord).rgb;
+    vec3 current_color = get_color(ray);
+    vec3 accumulated_color = (previous_color * float(frame_count - 1) + current_color) / float(frame_count);
 
-    imageStore(img_output, i_pixel_coord, vec4(color, 1.0));
+    imageStore(img_output, i_pixel_coord, vec4(accumulated_color, 1.0));
 }
