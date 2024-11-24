@@ -1,10 +1,7 @@
 package net.bowen.draw;
 
 import net.bowen.draw.materials.*;
-import net.bowen.draw.models.raytrace.Camera;
-import net.bowen.draw.models.raytrace.Quad;
-import net.bowen.draw.models.raytrace.RaytraceModel;
-import net.bowen.draw.models.raytrace.Sphere;
+import net.bowen.draw.models.raytrace.*;
 import net.bowen.draw.textures.*;
 import net.bowen.system.ShaderProgram;
 import org.joml.Vector3f;
@@ -225,8 +222,16 @@ public final class Scene {
         RaytraceModel.addModel(new Quad(new Vector3f(555, 555, 555), new Vector3f(-555, 0, 0), new Vector3f(0, 0, -555), white));
         RaytraceModel.addModel(new Quad(new Vector3f(0, 0, 555), new Vector3f(555, 0, 0), new Vector3f(0, 555, 0), white));
 
-        RaytraceModel.addModel(Quad.getBox(new Vector3f(130, 0, 65), new Vector3f(295, 165, 230), white));
-        RaytraceModel.addModel(Quad.getBox(new Vector3f(265, 0, 295), new Vector3f(430, 330, 460), white));
+        Vector3f box1Translation = new Vector3f(265,0,295);
+        Vector3f box1Rotation = new Vector3f(0, (float) Math.toRadians(15), 0);
+        Box box1 = new Box(new Vector3f(0, 0, 0), new Vector3f(165,330,165), box1Translation, box1Rotation, white);
+
+        Vector3f box2Translation = new Vector3f(130,0,65);
+        Vector3f box2Rotation = new Vector3f(0, (float) Math.toRadians(-18), 0);
+        Box box2 = new Box(new Vector3f(0, 0, 0), new Vector3f(165,165,165), box2Translation, box2Rotation, white);
+
+        RaytraceModel.addModel(box1);
+        RaytraceModel.addModel(box2);
 
         RaytraceModel.putModelsToProgram();
         SolidTexture.putDataToTexture();

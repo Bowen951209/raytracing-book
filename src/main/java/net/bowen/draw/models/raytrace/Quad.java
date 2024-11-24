@@ -5,8 +5,6 @@ import net.bowen.system.DataUtils;
 import org.joml.Vector3f;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
 
 public class Quad extends RaytraceModel {
     public static final int MODEL_ID = 2;
@@ -33,29 +31,6 @@ public class Quad extends RaytraceModel {
         this.d = new Vector3f(normal).dot(q);
 
         setBoundingBox();
-    }
-
-    /**
-     * @return the 3D box (six sides) that contains the two opposite vertices a & b.
-     */
-    public static List<Quad> getBox(Vector3f a, Vector3f b, Material material) {
-        List<Quad> sides = new ArrayList<>(6);
-        // Construct the two opposite vertices with the minimum and maximum coordinates.
-        Vector3f min = new Vector3f(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.min(a.z, b.z));
-        Vector3f max = new Vector3f(Math.max(a.x, b.x), Math.max(a.y, b.y), Math.max(a.z, b.z));
-
-        Vector3f dx = new Vector3f(max.x - min.x, 0, 0);
-        Vector3f dy = new Vector3f(0, max.y - min.y, 0);
-        Vector3f dz = new Vector3f(0, 0, max.z - min.z);
-
-        sides.add(new Quad(new Vector3f(min.x, min.y, max.z), dx, dy, material)); // front
-        sides.add(new Quad(new Vector3f(max.x, min.y, max.z), new Vector3f(dz).negate(), dy, material)); // right
-        sides.add(new Quad(new Vector3f(max.x, min.y, min.z), new Vector3f(dx).negate(), dy, material)); // back
-        sides.add(new Quad(new Vector3f(min.x, min.y, min.z), dz, dy, material)); // left
-        sides.add(new Quad(new Vector3f(min.x, max.y, max.z), dx, dz.negate(), material)); // top
-        sides.add(new Quad(new Vector3f(min.x, min.y, min.z), dx, dz, material)); // bottom
-
-        return sides;
     }
 
     private void setBoundingBox() {
