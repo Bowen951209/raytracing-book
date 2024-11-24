@@ -7,8 +7,6 @@ import java.util.Comparator;
 import java.util.List;
 
 public class BVHNode extends RaytraceModel {
-    public static final int MODEL_ID = 0;
-
     // Left and right children.
     public final RaytraceModel left, right;
 
@@ -59,7 +57,7 @@ public class BVHNode extends RaytraceModel {
 
     @Override
     protected int getModelId() {
-        return MODEL_ID;
+        return BVH_NODE_ID;
     }
 
     private static int boxCompare(RaytraceModel a, RaytraceModel b, int axis) {

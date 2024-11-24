@@ -7,8 +7,6 @@ import org.joml.Vector3f;
 import java.nio.ByteBuffer;
 
 public class Sphere extends RaytraceModel {
-    public static final int MODEL_ID = 1;
-
     private final Vector3f center1, vec12;
     private final float radius;
 
@@ -54,6 +52,6 @@ public class Sphere extends RaytraceModel {
 
     @Override
     protected int getModelId() {
-        return MODEL_ID;
+        return SPHERE_ID;
     }
 }

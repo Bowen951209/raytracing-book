@@ -11,6 +11,10 @@ import java.util.List;
 import static org.lwjgl.opengl.GL43.*;
 
 public abstract class RaytraceModel {
+    public static int BVH_NODE_ID = 0;
+    public static int SPHERE_ID = 1;
+    public static int QUAD_ID = 2;
+
     public static final List<Sphere> SPHERES = new ArrayList<>();
     public static final List<Quad> QUADS = new ArrayList<>();
     public static final List<BVHNode> BVH_NODES = new ArrayList<>();

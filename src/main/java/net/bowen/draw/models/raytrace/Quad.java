@@ -7,8 +7,6 @@ import org.joml.Vector3f;
 import java.nio.ByteBuffer;
 
 public class Quad extends RaytraceModel {
-    public static final int MODEL_ID = 2;
-
     private final Vector3f q, u, v, normal;
     private final float d;
     private final Material material;
@@ -55,6 +53,6 @@ public class Quad extends RaytraceModel {
 
     @Override
     protected int getModelId() {
-        return MODEL_ID;
+        return QUAD_ID;
     }
 }
