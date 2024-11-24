@@ -225,6 +225,9 @@ public final class Scene {
         RaytraceModel.addModel(new Quad(new Vector3f(555, 555, 555), new Vector3f(-555, 0, 0), new Vector3f(0, 0, -555), white));
         RaytraceModel.addModel(new Quad(new Vector3f(0, 0, 555), new Vector3f(555, 0, 0), new Vector3f(0, 555, 0), white));
 
+        RaytraceModel.addModel(Quad.getBox(new Vector3f(130, 0, 65), new Vector3f(295, 165, 230), white));
+        RaytraceModel.addModel(Quad.getBox(new Vector3f(265, 0, 295), new Vector3f(430, 330, 460), white));
+
         RaytraceModel.putModelsToProgram();
         SolidTexture.putDataToTexture();
 

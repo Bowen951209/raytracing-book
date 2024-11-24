@@ -50,6 +50,10 @@ public abstract class RaytraceModel {
         }
     }
 
+    public static void addModel(List<? extends RaytraceModel> model) {
+        model.forEach(RaytraceModel::addModel);
+    }
+
     public static void initSSBOs() {
         // Init the ssbo we want to pass data to program through.
 
