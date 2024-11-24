@@ -1,11 +1,13 @@
 package net.bowen.draw.materials;
 
+import net.bowen.draw.Color;
 import net.bowen.draw.textures.Texture;
 
 public abstract class Material {
     public static final int LAMBERTIAN = 0;
     public static final int METAL = 1;
     public static final int DIELECTRIC = 2;
+    public static final int DIFFUSE_LIGHT = 3;
 
     protected final int materialId;
     private final int texturePackedValue;
@@ -18,6 +20,10 @@ public abstract class Material {
     public Material(int materialId, int texturePackedValue) {
         this.materialId = materialId;
         this.texturePackedValue = texturePackedValue;
+    }
+
+    public Color emitted()  {
+        return new Color(0, 0, 0);
     }
 
     /**

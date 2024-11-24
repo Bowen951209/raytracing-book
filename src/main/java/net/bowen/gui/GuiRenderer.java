@@ -21,7 +21,7 @@ public class GuiRenderer implements GuiLayer {
     public void draw() {
         int dispatchTime = raytraceExecutor.getLastDispatchTime();
         int finishTime = raytraceExecutor.getFinishTime();
-        int numSample = raytraceExecutor.getSamples(); // num of samples that were taken.
+        int numSample = raytraceExecutor.getNumSamples(); // num of samples that were taken.
         int numAllSample = raytraceExecutor.getSamplePerPixel(); // num of samples that should be taken.
 
         String dispatchInfoText = "Last raytrace took: " + dispatchTime + " ms.";

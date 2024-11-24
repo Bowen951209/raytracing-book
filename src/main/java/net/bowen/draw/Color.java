@@ -6,7 +6,14 @@ public class Color {
     private static final Random RANDOM = new Random();
     public float r, g, b;
 
+    public Color() {
+    }
+
     public Color(float r, float g, float b) {
+        set(r, g, b);
+    }
+
+    public void set(float r, float g, float b) {
         this.r = r;
         this.g = g;
         this.b = b;
@@ -22,6 +29,10 @@ public class Color {
 
     public java.awt.Color getAWTColor() {
         return new java.awt.Color(r, g, b);
+    }
+
+    public float[] asArray() {
+        return new float[] {r, g, b};
     }
 
     public Color mul(Color c){

@@ -1,9 +1,6 @@
 package net.bowen.draw;
 
-import net.bowen.draw.materials.Dielectric;
-import net.bowen.draw.materials.Lambertian;
-import net.bowen.draw.materials.Material;
-import net.bowen.draw.materials.Metal;
+import net.bowen.draw.materials.*;
 import net.bowen.draw.models.raytrace.Camera;
 import net.bowen.draw.models.raytrace.Quad;
 import net.bowen.draw.models.raytrace.RaytraceModel;
@@ -16,8 +13,10 @@ import java.util.Random;
 
 public final class Scene {
     public final Camera camera = new Camera();
+    private final ShaderProgram computeProgram;
 
     public Scene(int sceneID, int initImageWidth, int initImageHeight, ShaderProgram computeProgram) {
+        this.computeProgram = computeProgram;
         RaytraceModel.initSSBOs();
 
         switch (sceneID) {
@@ -25,19 +24,21 @@ public final class Scene {
             case 1 -> checkerSpheres();
             case 2 -> earth();
             case 3 -> perlinSpheres();
-            case 4-> quads();
+            case 4 -> quads();
+            case 5 -> simpleLight();
+            case 6 -> cornellBox();
             default -> throw new IllegalArgumentException("Invalid scene ID: " + sceneID);
         }
 
         Texture.putTextureIndices(computeProgram);
         camera.setImageSize(initImageWidth, initImageHeight);
-        camera.init();
+        camera.init(computeProgram);
     }
 
     public void updateCamera(int imageWidth, int imageHeight) {
         camera.setImageSize(imageWidth, imageHeight);
         camera.calculateProperties();
-        camera.putToShaderProgram();
+        camera.putToShaderProgram(computeProgram);
     }
 
     private void bouncingSpheres() {
@@ -101,6 +102,7 @@ public final class Scene {
         camera.setLookAt(0, 0, 0);
         camera.setDefocusAngle(0.6f);
         camera.setFocusDist(10);
+        camera.setBackground(0.70f, 0.80f, 1.00f);
     }
 
     private void checkerSpheres() {
@@ -119,6 +121,7 @@ public final class Scene {
         camera.setLookFrom(13, 2, 3);
         camera.setLookAt(0, 0, 0);
         camera.setDefocusAngle(0);
+        camera.setBackground(0.70f, 0.80f, 1.00f);
     }
 
     private void earth() {
@@ -133,6 +136,7 @@ public final class Scene {
         camera.setLookFrom(0, 0, 12);
         camera.setLookAt(0, 0, 0);
         camera.setDefocusAngle(0);
+        camera.setBackground(0.70f, 0.80f, 1.00f);
     }
 
     private void perlinSpheres() {
@@ -150,23 +154,23 @@ public final class Scene {
         camera.setLookFrom(13, 2, 3);
         camera.setLookAt(0, 0, 0);
         camera.setDefocusAngle(0);
+        camera.setBackground(0.70f, 0.80f, 1.00f);
     }
-
 
     private void quads() {
         SolidTexture.init();
 
-        Material leftRed     = new Lambertian(SolidTexture.registerColor(1.0f, 0.2f, 0.2f));
-        Material backGreen   = new Lambertian(SolidTexture.registerColor(0.2f, 1.0f, 0.2f));
-        Material rightBlue   = new Lambertian(SolidTexture.registerColor(0.2f, 0.2f, 1.0f));
+        Material leftRed = new Lambertian(SolidTexture.registerColor(1.0f, 0.2f, 0.2f));
+        Material backGreen = new Lambertian(SolidTexture.registerColor(0.2f, 1.0f, 0.2f));
+        Material rightBlue = new Lambertian(SolidTexture.registerColor(0.2f, 0.2f, 1.0f));
         Material upperOrange = new Lambertian(SolidTexture.registerColor(1.0f, 0.5f, 0.0f));
-        Material lowerTeal   = new Lambertian(SolidTexture.registerColor(0.2f, 0.8f, 0.8f));
+        Material lowerTeal = new Lambertian(SolidTexture.registerColor(0.2f, 0.8f, 0.8f));
 
-        RaytraceModel.addModel(new Quad(new Vector3f(-3,-2, 5), new Vector3f(0, 0,-4), new Vector3f(0, 4, 0), leftRed));
-        RaytraceModel.addModel(new Quad(new Vector3f(-2,-2, 0), new Vector3f(4, 0, 0), new Vector3f(0, 4, 0), backGreen));
-        RaytraceModel.addModel(new Quad(new Vector3f( 3,-2, 1), new Vector3f(0, 0, 4), new Vector3f(0, 4, 0), rightBlue));
+        RaytraceModel.addModel(new Quad(new Vector3f(-3, -2, 5), new Vector3f(0, 0, -4), new Vector3f(0, 4, 0), leftRed));
+        RaytraceModel.addModel(new Quad(new Vector3f(-2, -2, 0), new Vector3f(4, 0, 0), new Vector3f(0, 4, 0), backGreen));
+        RaytraceModel.addModel(new Quad(new Vector3f(3, -2, 1), new Vector3f(0, 0, 4), new Vector3f(0, 4, 0), rightBlue));
         RaytraceModel.addModel(new Quad(new Vector3f(-2, 3, 1), new Vector3f(4, 0, 0), new Vector3f(0, 0, 4), upperOrange));
-        RaytraceModel.addModel(new Quad(new Vector3f(-2,-3, 5), new Vector3f(4, 0, 0), new Vector3f(0, 0,-4), lowerTeal));
+        RaytraceModel.addModel(new Quad(new Vector3f(-2, -3, 5), new Vector3f(4, 0, 0), new Vector3f(0, 0, -4), lowerTeal));
 
         RaytraceModel.putModelsToProgram();
         SolidTexture.putDataToTexture();
@@ -175,5 +179,59 @@ public final class Scene {
         camera.setLookFrom(0, 0, 9);
         camera.setLookAt(0, 0, 0);
         camera.setDefocusAngle(0);
+        camera.setBackground(0.70f, 0.80f, 1.00f);
+    }
+
+    private void simpleLight() {
+        PerlinNoiseTexture perlinNoise = PerlinNoiseTexture.create(4);
+
+        RaytraceModel.addModel(new Sphere(0, -1000, 0, 1000, new Lambertian(perlinNoise)));
+        RaytraceModel.addModel(new Sphere(0, 2, 0, 2, new Lambertian(perlinNoise)));
+
+        Material diffLight = new DiffuseLight(new Color(4, 4, 4));
+        RaytraceModel.addModel(new Sphere(
+                new Vector3f(0, 7, 0),
+                2,
+                diffLight
+        ));
+        RaytraceModel.addModel(new Quad(
+                new Vector3f(3, 1, -2),
+                new Vector3f(2, 0, 0),
+                new Vector3f(0, 2, 0),
+                diffLight
+        ));
+
+        RaytraceModel.putModelsToProgram();
+
+        camera.setVerticalFOV(20);
+        camera.setLookFrom(26, 3, 6);
+        camera.setLookAt(0, 2, 0);
+        camera.setDefocusAngle(0);
+        camera.setBackground(0, 0, 0);
+    }
+
+    private void cornellBox() {
+        SolidTexture.init();
+
+        Material red = new Lambertian(SolidTexture.registerColor(0.65f, 0.05f, 0.05f));
+        Material white = new Lambertian(SolidTexture.registerColor(0.73f, 0.73f, 0.73f));
+        Material green = new Lambertian(SolidTexture.registerColor(0.12f, 0.45f, 0.15f));
+        Material light = new DiffuseLight(new Color(15, 15, 15));
+
+        RaytraceModel.addModel(new Quad(new Vector3f(555, 0, 0), new Vector3f(0, 555, 0), new Vector3f(0, 0, 555), green));
+        RaytraceModel.addModel(new Quad(new Vector3f(0, 0, 0), new Vector3f(0, 555, 0), new Vector3f(0, 0, 555), red));
+        RaytraceModel.addModel(new Quad(new Vector3f(343, 554, 332), new Vector3f(-130, 0, 0), new Vector3f(0, 0, -105), light));
+        RaytraceModel.addModel(new Quad(new Vector3f(0, 0, 0), new Vector3f(555, 0, 0), new Vector3f(0, 0, 555), white));
+        RaytraceModel.addModel(new Quad(new Vector3f(555, 555, 555), new Vector3f(-555, 0, 0), new Vector3f(0, 0, -555), white));
+        RaytraceModel.addModel(new Quad(new Vector3f(0, 0, 555), new Vector3f(555, 0, 0), new Vector3f(0, 555, 0), white));
+
+        RaytraceModel.putModelsToProgram();
+        SolidTexture.putDataToTexture();
+
+        camera.setVerticalFOV(40);
+        camera.setLookFrom(278, 278, -800);
+        camera.setLookAt(278, 278, 0);
+        camera.setDefocusAngle(0);
+        camera.setBackground(0, 0, 0);
     }
 }

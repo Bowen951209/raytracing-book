@@ -49,6 +49,8 @@ public class Quad extends RaytraceModel{
         buffer.putInt(material.getTexturePackedValue());
         DataUtils.putToBuffer(v, buffer);
         buffer.putFloat(0); // padding
+        DataUtils.putToBuffer(material.emitted(), buffer);
+        buffer.putFloat(0); // padding
     }
 
     @Override

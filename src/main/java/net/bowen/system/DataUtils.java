@@ -1,5 +1,6 @@
 package net.bowen.system;
 
+import net.bowen.draw.Color;
 import org.joml.Vector3f;
 
 import java.nio.ByteBuffer;
@@ -16,5 +17,11 @@ public class DataUtils {
         buffer.putFloat(vec.x);
         buffer.putFloat(vec.y);
         buffer.putFloat(vec.z);
+    }
+
+    public static void putToBuffer(Color color, ByteBuffer buffer) {
+        buffer.putFloat(color.r);
+        buffer.putFloat(color.g);
+        buffer.putFloat(color.b);
     }
 }

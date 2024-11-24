@@ -15,8 +15,6 @@ import static org.lwjgl.opengl.GL43.glDispatchCompute;
 public class RaytraceExecutor {
     private final Texture quadTexture;
     private final ShaderProgram program;
-    private final FloatBuffer lastColorScale = BufferUtils.createFloatBuffer(1);
-    private final FloatBuffer thisColorScale = BufferUtils.createFloatBuffer(1);
     private final FloatBuffer randomFactor = BufferUtils.createFloatBuffer(1);
     private final List<Runnable> completeListeners = new ArrayList<>();
     private final List<QueryTimer> timers = new ArrayList<>();
@@ -24,7 +22,7 @@ public class RaytraceExecutor {
     /**
      * How many samples have been taken. It's added 1 per dispatch call.
      */
-    private int samples;
+    private int numSamples;
     /**
      * The system time of the first raytrace.
      */
@@ -54,12 +52,12 @@ public class RaytraceExecutor {
 
     public void resetCompleteState() {
         isSampleComplete = false;
-        samples = 0;
+        numSamples = 0;
         finishTime = -1;
     }
 
-    public int getSamples() {
-        return samples;
+    public int getNumSamples() {
+        return numSamples;
     }
 
     public int getSamplePerPixel() {
@@ -82,7 +80,7 @@ public class RaytraceExecutor {
     public void raytrace() {
         Texture.bindTexturesInCompute();
         // Set the start time if it's the very first raytrace.
-        if (samples == 0)
+        if (numSamples == 0)
             startTime = (int) System.currentTimeMillis();
 
         // Check available timers and put theirs value in to #lastDispatchTime.
@@ -103,14 +101,9 @@ public class RaytraceExecutor {
         timer.startQuery();
 
         // Put uniforms. The program will automatically use.
-        thisColorScale.put(1f / (samples + 1));
-        lastColorScale.put(samples == 0 ? 0 : 1f / samples);
         randomFactor.put((float) Math.random());
-        thisColorScale.flip();
-        lastColorScale.flip();
         randomFactor.flip();
-        program.setUniform1fv("this_color_scale", thisColorScale);
-        program.setUniform1fv("last_color_scale", lastColorScale);
+        program.setUniform1i("frame_count", ++numSamples);
         program.setUniform1fv("u_rand_factor", randomFactor);
 
         // Work group size.
@@ -126,13 +119,11 @@ public class RaytraceExecutor {
 
         // End timer.
         timer.endQuery();
-
-        samples++;
     }
 
     public boolean sampleComplete() {
         if (!isSampleComplete) {
-            isSampleComplete = samples >= samplePerPixel;
+            isSampleComplete = numSamples >= samplePerPixel;
 
             // If turn from incomplete to complete, it's time to call the complete listeners.
             if (isSampleComplete) {
