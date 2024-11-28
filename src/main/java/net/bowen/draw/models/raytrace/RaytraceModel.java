@@ -14,11 +14,16 @@ public abstract class RaytraceModel {
     public static int BVH_NODE_ID = 0;
     public static int SPHERE_ID = 1;
     public static int QUAD_ID = 2;
+    public static int CONSTANT_MEDIUM_ID = 3;
+    public static int BOX_ID = 4;
 
+    public static final List<RaytraceModel> ALL_MODELS = new ArrayList<>();
     public static final List<Sphere> SPHERES = new ArrayList<>();
     public static final List<Quad> QUADS = new ArrayList<>();
+    public static final List<ConstantMedium> CONSTANT_MEDIUMS = new ArrayList<>();
     public static final List<BVHNode> BVH_NODES = new ArrayList<>();
-    private static BufferObject sphereSSBO, quadSSBO, bvhSSBO;
+    public static final List<Box> BOXES = new ArrayList<>();
+    private static BufferObject sphereSSBO, quadSSBO, boxesSSBO, constantMediumSSBO, bvhSSBO;
 
     protected final Material material;
 
@@ -43,19 +48,32 @@ public abstract class RaytraceModel {
     }
 
     public static void addModel(RaytraceModel model) {
-        if (model instanceof Sphere) {
-            SPHERES.add((Sphere) model);
-            // The id can be calculated by the size of the list. And remember we add the model id to the floating point.
-            model.indexInList = SPHERES.size() - 1;
-        } else if (model instanceof Quad) {
-            QUADS.add((Quad) model);
-            // The id can be calculated by the size of the list. And remember we add the model id to the floating point.
-            model.indexInList = QUADS.size() - 1;
+        switch (model) {
+            case Sphere sphere -> {
+                SPHERES.add(sphere);
+                // The id can be calculated by the size of the list. And remember we add the model id to the floating point.
+                model.indexInList = SPHERES.size() - 1;
+            }
+            case Quad quad -> {
+                QUADS.add(quad);
+                // The id can be calculated by the size of the list. And remember we add the model id to the floating point.
+                model.indexInList = QUADS.size() - 1;
+            }
+            case Box box -> {
+                BOXES.add(box);
+                model.indexInList = BOXES.size() - 1;
+            }
+            case ConstantMedium constantMedium -> {
+                CONSTANT_MEDIUMS.add(constantMedium);
+                model.indexInList = CONSTANT_MEDIUMS.size() - 1;
+                // Constant medium's boundary should not be put to the BVH, but only put to the ssbo
+                // because we are not checking its boundary's global hit.
+                // So remove that from ALL_MODELS.
+                ALL_MODELS.remove(constantMedium.getBoundary());
+            }
+            case null, default -> throw new RuntimeException("Unknown model type.");
         }
-    }
-
-    public static void addModel(List<? extends RaytraceModel> model) {
-        model.forEach(RaytraceModel::addModel);
+        ALL_MODELS.add(model);
     }
 
     public static void initSSBOs() {
@@ -66,15 +84,25 @@ public abstract class RaytraceModel {
         // Bind the SSBO to a binding point
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, sphereSSBO.getId());
 
+        // BVH nodes:
+        bvhSSBO = new BufferObject(GL_SHADER_STORAGE_BUFFER);
+        // Bind the SSBO to a binding point
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bvhSSBO.getId());
+
         // Quads:
         quadSSBO = new BufferObject(GL_SHADER_STORAGE_BUFFER);
         // Bind the SSBO to a binding point
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, quadSSBO.getId());
 
-        // BVH nodes:
-        bvhSSBO = new BufferObject(GL_SHADER_STORAGE_BUFFER);
+        // Boxes:
+        boxesSSBO = new BufferObject(GL_SHADER_STORAGE_BUFFER);
         // Bind the SSBO to a binding point
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, bvhSSBO.getId());
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, boxesSSBO.getId());
+
+        // Constant Mediums:
+        constantMediumSSBO = new BufferObject(GL_SHADER_STORAGE_BUFFER);
+        // Bind the SSBO to a binding point
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, constantMediumSSBO.getId());
     }
 
     public static void putModelsToProgram() {
@@ -84,13 +112,14 @@ public abstract class RaytraceModel {
         quadSSBO.bind();
         putQuadsToProgram();
 
-        // Create a list of all models.
-        List<RaytraceModel> allModels = new ArrayList<>();
-        allModels.addAll(SPHERES);
-        allModels.addAll(QUADS);
+        boxesSSBO.bind();
+        putBoxesToProgram();
+
+        constantMediumSSBO.bind();
+        putConstantMediumsToProgram();
 
         // Recursively create BVH nodes for models. Each node will put itself to the BVH_NODES list.
-        new BVHNode(allModels, 0, allModels.size());
+        new BVHNode(ALL_MODELS, 0, ALL_MODELS.size());
 
         bvhSSBO.bind();
         putBVHNodesToProgram();
@@ -135,6 +164,39 @@ public abstract class RaytraceModel {
             throw new NullPointerException("ssbo is null. Has it been initialized?");
 
         quadSSBO.uploadData(buffer, GL_STATIC_DRAW);
+        MemoryUtil.memFree(buffer);
+    }
+
+    private static void putBoxesToProgram() {
+        // A box is composed if 6 quads, and quad structure is describe in #putQuadsToProgram.
+        ByteBuffer buffer = MemoryUtil.memAlloc(BOXES.size() * 120 * Float.BYTES);
+        for (Box box : BOXES)
+            box.putToBuffer(buffer);
+        buffer.flip();
+
+        if (boxesSSBO == null)
+            throw new NullPointerException("ssbo is null. Has it been initialized?");
+
+        boxesSSBO.uploadData(buffer, GL_STATIC_DRAW);
+        MemoryUtil.memFree(buffer);
+    }
+
+    private static void putConstantMediumsToProgram() {
+        // - 1 int for boundary model index in its SSBO.
+        // - 1 int for boundary model type.
+        // - 1 float for negative inverse density.
+        // - 1 int for material packed value.
+        // - 1 int for texture id.
+
+        ByteBuffer buffer = MemoryUtil.memAlloc(CONSTANT_MEDIUMS.size() * 5 * Float.BYTES);
+        for (ConstantMedium constantMedium : CONSTANT_MEDIUMS)
+            constantMedium.putToBuffer(buffer);
+        buffer.flip();
+
+        if (constantMediumSSBO == null)
+            throw new NullPointerException("ssbo is null. Has it been initialized?");
+
+        constantMediumSSBO.uploadData(buffer, GL_STATIC_DRAW);
         MemoryUtil.memFree(buffer);
     }
 

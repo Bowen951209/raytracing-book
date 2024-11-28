@@ -8,6 +8,7 @@ public abstract class Material {
     public static final int METAL = 1;
     public static final int DIELECTRIC = 2;
     public static final int DIFFUSE_LIGHT = 3;
+    public static final int ISOTROPIC = 4;
 
     protected final int materialId;
     private final int texturePackedValue;

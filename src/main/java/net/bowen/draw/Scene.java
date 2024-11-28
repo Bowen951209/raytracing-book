@@ -24,6 +24,7 @@ public final class Scene {
             case 4 -> quads();
             case 5 -> simpleLight();
             case 6 -> cornellBox();
+            case 7 -> cornellSmoke();
             default -> throw new IllegalArgumentException("Invalid scene ID: " + sceneID);
         }
 
@@ -232,6 +233,37 @@ public final class Scene {
 
         RaytraceModel.addModel(box1);
         RaytraceModel.addModel(box2);
+
+        RaytraceModel.putModelsToProgram();
+        SolidTexture.putDataToTexture();
+
+        camera.setVerticalFOV(40);
+        camera.setLookFrom(278, 278, -800);
+        camera.setLookAt(278, 278, 0);
+        camera.setDefocusAngle(0);
+        camera.setBackground(0, 0, 0);
+    }
+
+    private void cornellSmoke() {
+        SolidTexture.init();
+
+        Material red = new Lambertian(SolidTexture.registerColor(0.65f, 0.05f, 0.05f));
+        Material white = new Lambertian(SolidTexture.registerColor(0.73f, 0.73f, 0.73f));
+        Material green = new Lambertian(SolidTexture.registerColor(0.12f, 0.45f, 0.15f));
+        Material light = new DiffuseLight(new Color(7, 7, 7));
+
+        RaytraceModel.addModel(new Quad(new Vector3f(555, 0, 0), new Vector3f(0, 555, 0), new Vector3f(0, 0, 555), green));
+        RaytraceModel.addModel(new Quad(new Vector3f(0, 0, 0), new Vector3f(0, 555, 0), new Vector3f(0, 0, 555), red));
+        RaytraceModel.addModel(new Quad(new Vector3f(113, 554, 127), new Vector3f(330, 0, 0), new Vector3f(0, 0, 305), light));
+        RaytraceModel.addModel(new Quad(new Vector3f(0, 555, 0), new Vector3f(555, 0, 0), new Vector3f(0, 0, 555), white));
+        RaytraceModel.addModel(new Quad(new Vector3f(0, 0, 0), new Vector3f(555, 0, 0), new Vector3f(0, 0, 555), white));
+        RaytraceModel.addModel(new Quad(new Vector3f(0, 0, 555), new Vector3f(555, 0, 0), new Vector3f(0, 555, 0), white));
+
+        Box box1 = new Box(new Vector3f(0, 0,0), new Vector3f(165,330,165), new Vector3f(265, 0, 295), new Vector3f(0, (float) Math.toRadians(15), 0), white);
+        Box box2 = new Box(new Vector3f(0, 0,0), new Vector3f(165,165,165), new Vector3f(130, 0, 65), new Vector3f(0, (float) Math.toRadians(-18), 0), white);
+
+        RaytraceModel.addModel(new ConstantMedium(box1, 0.01f, new Isotropic(SolidTexture.registerColor(0.0f, 0.0f, 0.0f))));
+        RaytraceModel.addModel(new ConstantMedium(box2, 0.01f, new Isotropic(SolidTexture.registerColor(1, 1, 1))));
 
         RaytraceModel.putModelsToProgram();
         SolidTexture.putDataToTexture();
