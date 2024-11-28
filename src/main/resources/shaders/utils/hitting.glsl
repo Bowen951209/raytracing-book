@@ -3,30 +3,6 @@ const int MODEL_QUAD = 2;
 const int MODEL_CONSTANT_MEDIUM = 3;
 const int MODEL_BOX = 4;
 
-struct Ray {
-    vec3 o;     // origin
-    vec3 dir;   // direction
-};
-
-struct HitRecord {
-    bool is_front_face;
-    vec3 p;
-    vec3 normal;
-    float t;
-    vec2 uv;
-};
-
-struct Interval {
-    float min;
-    float max;
-};
-
-struct AABB {
-    Interval x;
-    Interval y;
-    Interval z;
-};
-
 bool interval_surrounds(Interval interval, float x);
 bool interval_contains(Interval interval, float x);
 
