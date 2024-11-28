@@ -136,7 +136,7 @@ bool hit_quad(Ray ray, Interval ray_t, vec3 normal, vec3 q, vec3 u, vec3 v, floa
     if((delta = u.x * v.y - u.y * v.x) != 0) {
         alpha = (planar_hitpt_vector.x * v.y - planar_hitpt_vector.y * v.x) / delta;
         beta = (planar_hitpt_vector.y * u.x - planar_hitpt_vector.x * u.y) / delta;
-    } else if((delta = u.x * v.z - u.z * v.x) != 0) {
+    } else if ((delta = u.x * v.z - u.z * v.x) != 0) {
         alpha = (planar_hitpt_vector.x * v.z - planar_hitpt_vector.z * v.x) / delta;
         beta = (planar_hitpt_vector.z * u.x - planar_hitpt_vector.x * u.z) / delta;
     } else {
@@ -153,9 +153,10 @@ bool hit_quad(Ray ray, Interval ray_t, vec3 normal, vec3 q, vec3 u, vec3 v, floa
     hit_record.p = intersection;
     hit_record.is_front_face = is_front_face(ray.dir, normal);
     hit_record.normal = get_face_normal(normal, hit_record.is_front_face);
+    return true;
+}
 
-
-bool hit_box(Ray ray, Interval ray_t, Box box, inout HitRecord hit_record) {
+bool hit_box(Ray ray, Interval ray_t, Box box, inout HitRecord hit_record){
     bool has_hit = false;
     // Check through a box's 6 sides.
     for (int i = 0; i < 6; i++) {
@@ -183,9 +184,6 @@ bool hit_boundary(Ray ray, Interval ray_t, int model_idx, int model_type, inout 
         default:
             return false;
     }
-}
-
-    return true;
 }
 
 bool hit_model(Ray ray, Interval ray_t, int model_idx, int model_type, inout HitRecord hit_record) {
