@@ -30,3 +30,7 @@ void refract_scatter(inout vec3 ray_dir, vec3 normal, float eta) {
         ray_dir = refract(ray_dir, normal, eta);
     }
 }
+
+void isotropic_scatter(inout Ray ray, vec3 p) {
+    ray = Ray(p, rand_unit_vec());
+}

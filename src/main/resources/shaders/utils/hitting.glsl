@@ -1,5 +1,6 @@
 const int MODEL_SPHERE = 1;
 const int MODEL_QUAD = 2;
+const int MODEL_CONSTANT_MEDIUM = 3;
 const int MODEL_BOX = 4;
 
 struct Ray {
@@ -186,18 +187,49 @@ bool hit_boundary(Ray ray, Interval ray_t, int model_idx, int model_type, inout 
     }
 }
 
+bool hit_constant_medium(Ray ray, Interval ray_t, ConstantMedium medium, inout HitRecord hit_record) {
+    HitRecord rec1, rec2;
+
+    if (!hit_boundary(ray, Interval(-INFINITY, INFINITY), medium.boundary_model_idx, medium.boundary_model_type, rec1))
+        return false;
+
+    if (!hit_boundary(ray, Interval(rec1.t + 0.0001, INFINITY), medium.boundary_model_idx, medium.boundary_model_type, rec2))
+        return false;
+
+    if (rec1.t < ray_t.min) rec1.t = ray_t.min;
+    if (rec2.t > ray_t.max) rec2.t = ray_t.max;
+
+    if (rec1.t >= rec2.t)
+        return false;
+
+    if (rec1.t < 0)
+    rec1.t = 0;
+
+    float ray_length = length(ray.dir);
+    float distance_inside_boundary = (rec2.t - rec1.t) * ray_length;
+    float hit_distance = medium.neg_inv_density * log(rand());
+
+    if (hit_distance > distance_inside_boundary)
+        return false;
+
+    hit_record.t = rec1.t + hit_distance / ray_length;
+    hit_record.p = ray.o + ray.dir * hit_record.t;
+    hit_record.normal = vec3(1.0, 0.0, 0.0); // arbitrary
+    hit_record.is_front_face = true; // also arbitrary
+
+    return true;
+}
+
 bool hit_model(Ray ray, Interval ray_t, int model_idx, int model_type, inout HitRecord hit_record) {
-    switch(model_type) {
-        case MODEL_SPHERE:
-            Sphere sphere = spheres[model_idx];
-            return hit_sphere(ray, ray_t, sphere.center1, sphere.center_vec, sphere.radius, hit_record);
-        case MODEL_QUAD:
-            Quad quad = quads[model_idx];
-            return hit_quad(ray, ray_t, quad.normal, quad.q, quad.u, quad.v, quad.d, hit_record);
-        case MODEL_BOX:
-            Box box = boxes[model_idx];
-            return hit_box(ray, ray_t, box, hit_record);
-        default:
-            return false;
+    // Check the single hit models. e.g. quads, spheres, and boxes.
+    if(hit_boundary(ray, ray_t, model_idx, model_type, hit_record))
+        return true;
+
+    // If it's a more complex model like constant mediums, check using its special function.
+    if(model_type == MODEL_CONSTANT_MEDIUM) {
+        ConstantMedium medium = constant_mediums[model_idx];
+        return hit_constant_medium(ray, ray_t, medium, hit_record);
     }
+
+    return false;
 }

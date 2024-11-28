@@ -9,6 +9,7 @@ const int MATERIAL_LAMBERTIAN = 0;
 const int MATERIAL_METAL = 1;
 const int MATERIAL_DIELECTRIC = 2;
 const int MATERIAL_DIFFUSE_LIGHT = 3;
+const int MATERIAL_ISOTROPIC = 4;
 const int PERLIN_POINT_COUNT = 256;
 
 // Values for extracting the IOR/eta from  material_val.
@@ -55,7 +56,6 @@ struct HitRecord {
     vec2 uv; // the uv coordinate for texture mapping.
 };
 
-// TODO: Make structs for different model types to avoid memory wastes.
 struct Sphere {
     vec3 center1;
 
@@ -86,6 +86,14 @@ struct Quad {
 
 struct Box{
     Quad quads[6];
+};
+
+struct ConstantMedium {
+    int boundary_model_idx;
+    int boundary_model_type;
+    float neg_inv_density;
+    int phase_function; // a material packed value.
+    int texture_id;
 };
 
 struct Interval {
@@ -121,6 +129,10 @@ layout(std430, binding = 2) buffer QuadBuffer {
     Quad quads[];
 };
 
+layout(std430, binding = 3) buffer ConstantMediumBuffer {
+    ConstantMedium constant_mediums[];
+};
+
 layout(std430, binding = 4) buffer BoxBuffer {
     Box boxes[];
 };
@@ -151,6 +163,7 @@ vec3 pixel_sample_square();
 vec3 lambertian_scatter(vec3 normal);
 void metal_scatter(inout vec3 ray_dir, vec3 normal, float fuzz);
 void refract_scatter(inout vec3 ray_dir, vec3 normal, float eta);
+void isotropic_scatter(inout Ray ray, vec3 p);
 vec3 checkerboard(vec3 p);
 vec3 texture_color(vec3 p, int id, vec2 uv);
 bool hit_model(Ray ray, Interval ray_t, int model_idx, int model_type, inout HitRecord hit_record);
@@ -160,14 +173,14 @@ bool near_zero(vec3 v) {
     return abs(v.x) < s && abs(v.y) < s && abs(v.z) < s;
 }
 
-bool scatter(inout vec3 ray_dir, vec3 normal, bool is_front_face, int material_val) {
+bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int material_val) {
     // Extract material ID from the upper 16 bits
     int material_id = (material_val >> 16) & 0xFFFF;
     bool should_scatter;
 
     switch (material_id) {
         case MATERIAL_LAMBERTIAN: {
-            ray_dir = lambertian_scatter(normal);
+            ray.dir = lambertian_scatter(normal);
             should_scatter = true;
             break;
         }
@@ -178,8 +191,8 @@ bool scatter(inout vec3 ray_dir, vec3 normal, bool is_front_face, int material_v
             // Convert fuzz back to float (undo the quantization)
             float fuzz = float(fuzz_quantized) / 65535.0;
 
-            metal_scatter(ray_dir, normal, fuzz);
-            should_scatter =  dot(ray_dir, normal) > 0.0; // check if the ray is absorbed by the metal
+            metal_scatter(ray.dir, normal, fuzz);
+            should_scatter =  dot(ray.dir, normal) > 0.0; // check if the ray is absorbed by the metal
             break;
         }
         case MATERIAL_DIELECTRIC: {
@@ -193,16 +206,21 @@ bool scatter(inout vec3 ray_dir, vec3 normal, bool is_front_face, int material_v
             float eta = mix(MIN_IOR, MAX_IOR, normalizedIOR);
 
             if(is_front_face) eta = 1.0 / eta;
-            refract_scatter(ray_dir, normal, eta);
+            refract_scatter(ray.dir, normal, eta);
             should_scatter =  true;
             break;
         }
         case MATERIAL_DIFFUSE_LIGHT: return false;
+        case MATERIAL_ISOTROPIC: {
+            isotropic_scatter(ray, hit_point);
+            should_scatter = true;
+            break;
+        }
     }
 
     // Catch degenerate scatter direction.
-    if (near_zero(ray_dir))
-        ray_dir = normal;
+    if (near_zero(ray.dir))
+        ray.dir = normal;
 
     return should_scatter;
 }
@@ -225,6 +243,12 @@ void set_material_properties(int model_idx, int model_type, vec3 p, vec2 uv) {
             material = quad.material;
             albedo = texture_color(p, quad.texture_id, uv);
             color_from_emission = quad.emission;
+            return;
+        case 3: // constant medium
+            ConstantMedium medium = constant_mediums[model_idx];
+            material = medium.phase_function;
+            albedo = texture_color(p, medium.texture_id, uv);
+            color_from_emission = vec3(0.0);
             return;
         case 4: // box
             Box box = boxes[model_idx];
@@ -316,7 +340,7 @@ vec3 get_color(Ray ray) {
             break;
         }
 
-        if(!scatter(ray.dir, hit_record.normal, hit_record.is_front_face, material)) {
+        if(!scatter(ray, hit_record.p, hit_record.normal, hit_record.is_front_face, material)) {
             final_color = accumulated_attenuation * color_from_emission;
             break;
         }
