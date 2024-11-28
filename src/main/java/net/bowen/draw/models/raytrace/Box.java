@@ -4,19 +4,19 @@ import net.bowen.draw.materials.Material;
 import org.joml.Matrix3f;
 import org.joml.Vector3f;
 
-import java.util.ArrayList;
+import java.nio.ByteBuffer;
 
-public class Box extends ArrayList<RaytraceModel> {
+public class Box extends RaytraceModel {
     private final Vector3f translation;
     private final Vector3f rotation;
     private final Material material;
+    private final Quad[] sides = new Quad[6];
 
     /**
      * Construct the 3D box (six sides) that contains the two opposite vertices a & b, and apply the transformation
      * passed in.
      */
     public Box(Vector3f a, Vector3f b, Vector3f translation, Vector3f rotation, Material material) {
-        super(6); // a box has six sides
         this.translation = translation;
         this.rotation = rotation;
         this.material = material;
@@ -29,12 +29,26 @@ public class Box extends ArrayList<RaytraceModel> {
         Vector3f dy = new Vector3f(0, max.y - min.y, 0);
         Vector3f dz = new Vector3f(0, 0, max.z - min.z);
 
-        add(getSide(new Vector3f(min.x, min.y, max.z), dx, dy)); // front
-        add(getSide(new Vector3f(max.x, min.y, max.z), new Vector3f(dz).negate(), dy)); // right
-        add(getSide(new Vector3f(max.x, min.y, min.z), new Vector3f(dx).negate(), dy)); // back
-        add(getSide(new Vector3f(min.x, min.y, min.z), dz, dy)); // left
-        add(getSide(new Vector3f(min.x, max.y, max.z), dx, new Vector3f(dz).negate())); // top
-        add(getSide(new Vector3f(min.x, min.y, min.z), dx, dz)); // bottom
+        sides[0] = (getSide(new Vector3f(min.x, min.y, max.z), dx, dy)); // front
+        sides[1] = (getSide(new Vector3f(max.x, min.y, max.z), new Vector3f(dz).negate(), dy)); // right
+        sides[2] = (getSide(new Vector3f(max.x, min.y, min.z), new Vector3f(dx).negate(), dy)); // back
+        sides[3] = (getSide(new Vector3f(min.x, min.y, min.z), dz, dy)); // left
+        sides[4] = (getSide(new Vector3f(min.x, max.y, max.z), dx, new Vector3f(dz).negate())); // top
+        sides[5] = (getSide(new Vector3f(min.x, min.y, min.z), dx, dz)); // bottom
+
+        setBoundingBox();
+    }
+
+    private void setBoundingBox() {
+        bbox = new AABB();
+        for (int i = 0; i < 6; i++) {
+            bbox.set(sides[i++].bbox, sides[i].boundingBox());
+        }
+    }
+
+    public void putToBuffer(ByteBuffer buffer) {
+        for (Quad side : sides)
+            side.putToBuffer(buffer);
     }
 
     private Quad getSide(Vector3f q, Vector3f u, Vector3f v) {
@@ -45,5 +59,10 @@ public class Box extends ArrayList<RaytraceModel> {
         Vector3f tv = new Vector3f(v).mul(rotationMatrix);
 
         return new Quad(tq, tu, tv, material);
+    }
+
+    @Override
+    protected int getModelId() {
+        return BOX_ID;
     }
 }

@@ -1,3 +1,7 @@
+const int MODEL_SPHERE = 1;
+const int MODEL_QUAD = 2;
+const int MODEL_BOX = 4;
+
 struct Ray {
     vec3 o;     // origin
     vec3 dir;   // direction
@@ -150,17 +154,51 @@ bool hit_quad(Ray ray, Interval ray_t, vec3 normal, vec3 q, vec3 u, vec3 v, floa
     hit_record.is_front_face = is_front_face(ray.dir, normal);
     hit_record.normal = get_face_normal(normal, hit_record.is_front_face);
 
+
+bool hit_box(Ray ray, Interval ray_t, Box box, inout HitRecord hit_record) {
+    bool has_hit = false;
+    // Check through a box's 6 sides.
+    for (int i = 0; i < 6; i++) {
+        Quad quad = box.quads[i];
+        if (hit_quad(ray, ray_t, quad.normal, quad.q, quad.u, quad.v, quad.d, hit_record)) {
+            ray_t.max = hit_record.t;
+            has_hit = true;
+        }
+    }
+
+    return has_hit;
+}
+
+bool hit_boundary(Ray ray, Interval ray_t, int model_idx, int model_type, inout HitRecord hit_record) {
+    switch(model_type) {
+        case MODEL_SPHERE:
+            Sphere sphere = spheres[model_idx];
+            return hit_sphere(ray, ray_t, sphere.center1, sphere.center_vec, sphere.radius, hit_record);
+        case MODEL_QUAD:
+            Quad quad = quads[model_idx];
+            return hit_quad(ray, ray_t, quad.normal, quad.q, quad.u, quad.v, quad.d, hit_record);
+        case MODEL_BOX:
+            Box box = boxes[model_idx];
+            return hit_box(ray, ray_t, box, hit_record);
+        default:
+            return false;
+    }
+}
+
     return true;
 }
 
 bool hit_model(Ray ray, Interval ray_t, int model_idx, int model_type, inout HitRecord hit_record) {
     switch(model_type) {
-        case 1:
+        case MODEL_SPHERE:
             Sphere sphere = spheres[model_idx];
             return hit_sphere(ray, ray_t, sphere.center1, sphere.center_vec, sphere.radius, hit_record);
-        case 2:
+        case MODEL_QUAD:
             Quad quad = quads[model_idx];
             return hit_quad(ray, ray_t, quad.normal, quad.q, quad.u, quad.v, quad.d, hit_record);
+        case MODEL_BOX:
+            Box box = boxes[model_idx];
+            return hit_box(ray, ray_t, box, hit_record);
         default:
             return false;
     }

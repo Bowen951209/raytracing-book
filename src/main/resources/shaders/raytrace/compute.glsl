@@ -84,6 +84,10 @@ struct Quad {
     vec3 emission;
 };
 
+struct Box{
+    Quad quads[6];
+};
+
 struct Interval {
     float min;
     float max;
@@ -115,6 +119,10 @@ layout(std430, binding = 1) buffer BVHBuffer {
 
 layout(std430, binding = 2) buffer QuadBuffer {
     Quad quads[];
+};
+
+layout(std430, binding = 4) buffer BoxBuffer {
+    Box boxes[];
 };
 
 // The includes. Must be after the global variables and ssbos because some of the includes use those.
@@ -217,6 +225,12 @@ void set_material_properties(int model_idx, int model_type, vec3 p, vec2 uv) {
             material = quad.material;
             albedo = texture_color(p, quad.texture_id, uv);
             color_from_emission = quad.emission;
+            return;
+        case 4: // box
+            Box box = boxes[model_idx];
+            material = box.quads[0].material;
+            albedo = texture_color(p, box.quads[0].texture_id, uv);
+            color_from_emission = box.quads[0].emission;
             return;
     }
 }
