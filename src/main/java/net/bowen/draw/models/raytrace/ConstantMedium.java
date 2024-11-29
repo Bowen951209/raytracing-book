@@ -25,7 +25,7 @@ public class ConstantMedium extends RaytraceModel {
 
     public void putToBuffer(ByteBuffer buffer) {
         // model index in its list
-        buffer.putInt(indexInList);
+        buffer.putInt(boundary.indexInList);
         // model type
         buffer.putInt(boundary.getModelId());
         // negative inverted density

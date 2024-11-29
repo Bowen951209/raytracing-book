@@ -17,9 +17,9 @@ public class Box extends RaytraceModel {
      * passed in.
      */
     public Box(Vector3f a, Vector3f b, Vector3f translation, Vector3f rotation, Material material) {
+        this.material = material;
         this.translation = translation;
         this.rotation = rotation;
-        this.material = material;
 
         // Instantiate 4d vectors in convenience to apply transformation.
         Vector3f min = new Vector3f(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.min(a.z, b.z));
@@ -39,6 +39,13 @@ public class Box extends RaytraceModel {
         setBoundingBox();
     }
 
+    /**
+     * Construct the 3D box (six sides) that contains the two opposite vertices a & b, and apply no transformation.
+     */
+    public Box(Vector3f a, Vector3f b, Material material) {
+        this(a, b, null, null, material);
+    }
+
     private void setBoundingBox() {
         bbox = new AABB();
         for (int i = 0; i < 6; i++) {
@@ -52,11 +59,16 @@ public class Box extends RaytraceModel {
     }
 
     private Quad getSide(Vector3f q, Vector3f u, Vector3f v) {
-        Matrix3f rotationMatrix = new Matrix3f().rotateX(rotation.x).rotateY(rotation.y).rotateZ(rotation.z);
+        Vector3f tq = new Vector3f(q);
+        Vector3f tu = new Vector3f(u);
+        Vector3f tv = new Vector3f(v);
 
-        Vector3f tq = new Vector3f(q).mul(rotationMatrix).add(translation);
-        Vector3f tu = new Vector3f(u).mul(rotationMatrix);
-        Vector3f tv = new Vector3f(v).mul(rotationMatrix);
+        if (rotation != null && translation != null) {
+            Matrix3f rotationMatrix = new Matrix3f().rotateX(rotation.x).rotateY(rotation.y).rotateZ(rotation.z);
+            tq.mul(rotationMatrix).add(translation);
+            tu.mul(rotationMatrix);
+            tv.mul(rotationMatrix);
+        }
 
         return new Quad(tq, tu, tv, material);
     }

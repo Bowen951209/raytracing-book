@@ -25,6 +25,7 @@ public final class Scene {
             case 5 -> simpleLight();
             case 6 -> cornellBox();
             case 7 -> cornellSmoke();
+            case 8 -> finalScene();
             default -> throw new IllegalArgumentException("Invalid scene ID: " + sceneID);
         }
 
@@ -270,6 +271,69 @@ public final class Scene {
 
         camera.setVerticalFOV(40);
         camera.setLookFrom(278, 278, -800);
+        camera.setLookAt(278, 278, 0);
+        camera.setDefocusAngle(0);
+        camera.setBackground(0, 0, 0);
+    }
+
+    private void finalScene() {
+        SolidTexture.init();
+
+        Material ground = new Lambertian(SolidTexture.registerColor(0.48f, 0.83f, 0.53f));
+
+        int boxesPerSide = 20;
+        for (int i = 0; i < boxesPerSide; i++) {
+            for (int j = 0; j < boxesPerSide; j++) {
+                float w = 100.0f;
+                float x0 = -1000.0f + i*w;
+                float z0 = -1000.0f + j*w;
+                float y0 = 0.0f;
+                float x1 = x0 + w;
+                float y1 = (float) (1 + Math.random() * 100);
+                float z1 = z0 + w;
+                RaytraceModel.addModel(new Box(new Vector3f(x0, y0, z0), new Vector3f(x1, y1, z1), ground));
+            }
+        }
+
+        Material light = new DiffuseLight(new Color(7, 7, 7));
+        RaytraceModel.addModel(new Quad(new Vector3f(123,554,147), new Vector3f(300, 0, 0), new Vector3f(0, 0, 265), light));
+
+        Vector3f center1 = new Vector3f(400, 400, 200);
+        Vector3f center2 = center1.add(new Vector3f(30, 0, 0));
+        Material sphereMaterial = new Lambertian(SolidTexture.registerColor(0.7f, 0.3f, 0.1f));
+        RaytraceModel.addModel(new Sphere(center1, center2, 50, sphereMaterial));
+
+        RaytraceModel.addModel(new Sphere(new Vector3f(260, 150, 45), 50, new Dielectric(1.5f)));
+        RaytraceModel.addModel(new Sphere(new Vector3f(0, 150, 145), 50, new Metal(SolidTexture.registerColor(0.8f, 0.8f, 0.9f), 0.999f)));
+
+
+        Sphere boundary = new Sphere(new Vector3f(360, 150, 145), 70, new Dielectric(1.5f));
+        RaytraceModel.addModel(boundary);
+        RaytraceModel.addModel(new ConstantMedium(boundary, 0.2f, new Isotropic(SolidTexture.registerColor(0.2f, 0.4f, 0.9f))));
+
+        boundary = new Sphere(new Vector3f(0, 0, 0), 5000, new Dielectric(1.5f));
+        RaytraceModel.addModel(new ConstantMedium(boundary, 0.0001f, new Isotropic(SolidTexture.registerColor(1, 1, 1))));
+
+        Material earthMaterial = new Lambertian(ImageTexture.create("textures/earthmap.jpg", 100, 0));
+        RaytraceModel.addModel(new Sphere(new Vector3f(400, 200, 400), 100, earthMaterial));
+
+        Texture perlinTexture = PerlinNoiseTexture.create(0.2f);
+        Material noiseMaterial = new Lambertian(perlinTexture);
+        RaytraceModel.addModel(new Sphere(new Vector3f(220, 280, 300), 80, noiseMaterial));
+
+        Lambertian white = new Lambertian(SolidTexture.registerColor(0.73f, 0.73f, 0.73f));
+        int ns = 1000;
+        for (int j = 0; j < ns; j++) {
+            Vector3f center = new Vector3f((float) (165 * Math.random()), (float) (165 * Math.random()), (float) (165 * Math.random()));
+            center.add(-100, 270, 395);
+            RaytraceModel.addModel(new Sphere(center, 10, white));
+        }
+
+        RaytraceModel.putModelsToProgram();
+        SolidTexture.putDataToTexture();
+
+        camera.setVerticalFOV(40);
+        camera.setLookFrom( 478, 278, -600);
         camera.setLookAt(278, 278, 0);
         camera.setDefocusAngle(0);
         camera.setBackground(0, 0, 0);

@@ -1,5 +1,6 @@
 package net.bowen.draw.textures;
 
+import org.lwjgl.BufferUtils;
 import org.lwjgl.system.MemoryStack;
 
 import java.net.URISyntaxException;
@@ -18,6 +19,10 @@ public class ImageTexture extends Texture {
     }
 
     public static ImageTexture create(String resourcePath) {
+        return create(resourcePath, 0, 0);
+    }
+
+    public static ImageTexture create(String resourcePath, int shiftX, int shiftY) {
         URL resource = Objects.requireNonNull(Texture.class.getClassLoader().getResource(resourcePath));
         String filePath;
         try {
@@ -61,8 +66,31 @@ public class ImageTexture extends Texture {
                 throw new RuntimeException("Unsupported image format");
             }
 
+            // Create a buffer for the shifted image
+            ByteBuffer shiftedBuffer = BufferUtils.createByteBuffer(image.capacity());
+
+            for (int y = 0; y < imgHeight; y++) {
+                // Calculate the source row with wrapping for vertical shift
+                int sourceY = (y - shiftY + imgHeight) % imgHeight;
+
+                for (int x = 0; x < imgWidth; x++) {
+                    // Calculate the source column with wrapping for horizontal shift
+                    int sourceX = (x - shiftX + imgWidth) % imgWidth;
+
+                    // Calculate source and destination indices in the 1D buffer
+                    int srcIndex = (sourceY * imgWidth + sourceX) * imgChannels; // Source pixel
+                    int dstIndex = (y * imgWidth + x) * imgChannels;             // Destination pixel
+
+
+                    // Copy pixel data
+                    for (int i = 0; i < imgChannels; i++) {
+                        shiftedBuffer.put(dstIndex + i, image.get(srcIndex + i));
+                    }
+                }
+            }
+
             // Return a new Texture object with the image's data
-            ImageTexture instance = new ImageTexture(imgWidth, imgHeight, format, format, GL_UNSIGNED_BYTE, image);
+            ImageTexture instance = new ImageTexture(imgWidth, imgHeight, format, format, GL_UNSIGNED_BYTE, shiftedBuffer);
             texturesInComputeAdd(instance);
 
             // Free the image memory once loaded

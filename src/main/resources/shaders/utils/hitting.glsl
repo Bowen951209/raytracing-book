@@ -19,12 +19,12 @@ vec3 sphere_center(vec3 center1, vec3 center_vec) {
     return center1 + center_vec * time;
 }
 
-bool hit_sphere(Ray ray, Interval ray_t, vec3 center1, vec3 center_vec, float radius, inout HitRecord hit_record) {
-    vec3 center = sphere_center(center1, center_vec);
+bool hit_sphere(Ray ray, Interval ray_t, Sphere sphere, inout HitRecord hit_record) {
+    vec3 center = sphere_center(sphere.center1, sphere.center_vec);
     vec3 oc = ray.o - center;
     float a = dot(ray.dir, ray.dir);
     float half_b = dot(oc, ray.dir);
-    float c = dot(oc, oc) - radius * radius;
+    float c = dot(oc, oc) - sphere.radius * sphere.radius;
     float discriminant = half_b * half_b - a * c;
 
     if (discriminant < 0.0) {
@@ -42,10 +42,14 @@ bool hit_sphere(Ray ray, Interval ray_t, vec3 center1, vec3 center_vec, float ra
 
         hit_record.t = root;
         hit_record.p = ray.o + ray.dir * hit_record.t;
-        vec3 outward_normal = (hit_record.p - center) / radius;
+        vec3 outward_normal = (hit_record.p - center) / sphere.radius;
         hit_record.is_front_face = is_front_face(ray.dir, outward_normal);
         hit_record.normal = get_face_normal(outward_normal, hit_record.is_front_face);
-        hit_record.uv = get_sphere_uv(hit_record.p);
+        vec2 uv = get_sphere_uv(hit_record.p - center);
+
+        material = sphere.material;
+        albedo = texture_color(hit_record.p, sphere.texture_id, uv);
+        color_from_emission = sphere.emission;
 
         return true;
     }
@@ -92,7 +96,8 @@ bool is_interior(float a, float b, out vec2 uv) {
     return true;
 }
 
-bool hit_quad(Ray ray, Interval ray_t, vec3 normal, vec3 q, vec3 u, vec3 v, float d, inout HitRecord hit_record) {
+bool hit_quad(Ray ray, Interval ray_t, Quad quad, inout HitRecord hit_record) {
+    vec3 normal = quad.normal;
     float denom = dot(normal, ray.dir);
 
     // No hit if the ray is parallel to the plane.
@@ -100,16 +105,18 @@ bool hit_quad(Ray ray, Interval ray_t, vec3 normal, vec3 q, vec3 u, vec3 v, floa
         return false;
 
     // Return false if the hit point parameter t is outside the ray interval.
-    float t = (d - dot(normal, ray.o)) / denom;
+    float t = (quad.d - dot(normal, ray.o)) / denom;
     if (!interval_contains(ray_t, t))
         return false;
 
     // Determine if the hit point lies within the planar shape using its plane coordinates.
     vec3 intersection = ray.o + ray.dir * t;
-    vec3 planar_hitpt_vector = intersection - q;
+    vec3 planar_hitpt_vector = intersection - quad.q;
 
     float delta, alpha, beta;
 
+    vec3 u = quad.u;
+    vec3 v = quad.v;
     if((delta = u.x * v.y - u.y * v.x) != 0) {
         alpha = (planar_hitpt_vector.x * v.y - planar_hitpt_vector.y * v.x) / delta;
         beta = (planar_hitpt_vector.y * u.x - planar_hitpt_vector.x * u.y) / delta;
@@ -122,7 +129,8 @@ bool hit_quad(Ray ray, Interval ray_t, vec3 normal, vec3 q, vec3 u, vec3 v, floa
         beta = (planar_hitpt_vector.z * u.y - planar_hitpt_vector.y * u.z) / delta;
     }
 
-    if (!is_interior(alpha, beta, hit_record.uv))
+    vec2 uv;
+    if (!is_interior(alpha, beta, uv))
         return false;
 
     // Ray hits the 2D shape; set the rest of the hit record and return true.
@@ -130,6 +138,11 @@ bool hit_quad(Ray ray, Interval ray_t, vec3 normal, vec3 q, vec3 u, vec3 v, floa
     hit_record.p = intersection;
     hit_record.is_front_face = is_front_face(ray.dir, normal);
     hit_record.normal = get_face_normal(normal, hit_record.is_front_face);
+
+    material = quad.material;
+    albedo = texture_color(hit_record.p, quad.texture_id, uv);
+    color_from_emission = quad.emission;
+
     return true;
 }
 
@@ -137,8 +150,7 @@ bool hit_box(Ray ray, Interval ray_t, Box box, inout HitRecord hit_record){
     bool has_hit = false;
     // Check through a box's 6 sides.
     for (int i = 0; i < 6; i++) {
-        Quad quad = box.quads[i];
-        if (hit_quad(ray, ray_t, quad.normal, quad.q, quad.u, quad.v, quad.d, hit_record)) {
+        if (hit_quad(ray, ray_t, box.quads[i], hit_record)) {
             ray_t.max = hit_record.t;
             has_hit = true;
         }
@@ -150,11 +162,9 @@ bool hit_box(Ray ray, Interval ray_t, Box box, inout HitRecord hit_record){
 bool hit_boundary(Ray ray, Interval ray_t, int model_idx, int model_type, inout HitRecord hit_record) {
     switch(model_type) {
         case MODEL_SPHERE:
-            Sphere sphere = spheres[model_idx];
-            return hit_sphere(ray, ray_t, sphere.center1, sphere.center_vec, sphere.radius, hit_record);
+            return hit_sphere(ray, ray_t, spheres[model_idx], hit_record);
         case MODEL_QUAD:
-            Quad quad = quads[model_idx];
-            return hit_quad(ray, ray_t, quad.normal, quad.q, quad.u, quad.v, quad.d, hit_record);
+            return hit_quad(ray, ray_t, quads[model_idx], hit_record);
         case MODEL_BOX:
             Box box = boxes[model_idx];
             return hit_box(ray, ray_t, box, hit_record);
@@ -193,6 +203,10 @@ bool hit_constant_medium(Ray ray, Interval ray_t, ConstantMedium medium, inout H
     hit_record.normal = vec3(1.0, 0.0, 0.0); // arbitrary
     hit_record.is_front_face = true; // also arbitrary
 
+    material = medium.phase_function;
+    albedo = texture_color(hit_record.p, medium.texture_id, vec2(0.0));
+    color_from_emission = vec3(0.0);
+
     return true;
 }
 
@@ -203,8 +217,7 @@ bool hit_model(Ray ray, Interval ray_t, int model_idx, int model_type, inout Hit
 
     // If it's a more complex model like constant mediums, check using its special function.
     if(model_type == MODEL_CONSTANT_MEDIUM) {
-        ConstantMedium medium = constant_mediums[model_idx];
-        return hit_constant_medium(ray, ray_t, medium, hit_record);
+        return hit_constant_medium(ray, ray_t, constant_mediums[model_idx], hit_record);
     }
 
     return false;
