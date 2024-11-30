@@ -299,7 +299,7 @@ public final class Scene {
         RaytraceModel.addModel(new Quad(new Vector3f(123,554,147), new Vector3f(300, 0, 0), new Vector3f(0, 0, 265), light));
 
         Vector3f center1 = new Vector3f(400, 400, 200);
-        Vector3f center2 = center1.add(new Vector3f(30, 0, 0));
+        Vector3f center2 = new Vector3f(center1).add(new Vector3f(100, 0, 0));
         Material sphereMaterial = new Lambertian(SolidTexture.registerColor(0.7f, 0.3f, 0.1f));
         RaytraceModel.addModel(new Sphere(center1, center2, 50, sphereMaterial));
 
