@@ -53,6 +53,7 @@ struct HitRecord {
     vec3 p; // the hit point.
     vec3 normal; // the normal at the hit point of the object.
     float t; // the scale of the ray from its origin to the hit point.
+    vec2 uv; // the uv coordinate for texture mapping.
 };
 
 struct Sphere {
@@ -229,6 +230,35 @@ int get_node_type(int id) {
     return id;
 }
 
+void set_material_properties(int model_idx, int model_type, vec3 p, vec2 uv) {
+    switch(model_type) {
+        case 1: // sphere
+            Sphere sphere = spheres[model_idx];
+            material = sphere.material;
+            albedo = texture_color(p, sphere.texture_id, uv);
+            color_from_emission = sphere.emission;
+            return;
+        case 2: // quad
+            Quad quad = quads[model_idx];
+            material = quad.material;
+            albedo = texture_color(p, quad.texture_id, uv);
+            color_from_emission = quad.emission;
+            return;
+        case 3: // constant medium
+            ConstantMedium medium = constant_mediums[model_idx];
+            material = medium.phase_function;
+            albedo = texture_color(p, medium.texture_id, uv);
+            color_from_emission = vec3(0.0);
+            return;
+        case 4: // box
+            Box box = boxes[model_idx];
+            material = box.quads[0].material;
+            albedo = texture_color(p, box.quads[0].texture_id, uv);
+            color_from_emission = box.quads[0].emission;
+            return;
+    }
+}
+
 bool trace_through_bvh(Ray ray, Interval ray_t, out HitRecord hit_record) {
     int node_idx;
     int model_idx;
@@ -254,6 +284,8 @@ bool trace_through_bvh(Ray ray, Interval ray_t, out HitRecord hit_record) {
                     if (hit_model(ray, ray_t, model_idx, node_type, hit_record)) {
                         has_hit = true;
                         ray_t.max = hit_record.t;
+
+                        set_material_properties(model_idx, node_type, hit_record.p, hit_record.uv);
                     }
                     model_idx = (node.right_id >> 16) & 0xFFFF;
                     node_type = get_node_type(node.right_id);
