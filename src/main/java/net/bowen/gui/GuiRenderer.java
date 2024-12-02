@@ -36,7 +36,7 @@ public class GuiRenderer implements GuiLayer {
         ImGui.text(sampleInfoText);
 
         // Slider for multi-sample count.
-        if (ImGui.sliderInt("Sample per pixel", samplePerPixel, 1, 100)) {
+        if (ImGui.sliderInt("Sample per pixel", samplePerPixel, 1, 10_000)) {
             multiSampleSliderSlide();
         }
 
