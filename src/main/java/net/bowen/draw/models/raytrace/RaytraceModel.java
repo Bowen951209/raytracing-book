@@ -48,31 +48,26 @@ public abstract class RaytraceModel {
     }
 
     public static void addModel(RaytraceModel model) {
-        switch (model) {
-            case Sphere sphere -> {
-                SPHERES.add(sphere);
-                // The id can be calculated by the size of the list. And remember we add the model id to the floating point.
-                model.indexInList = SPHERES.size() - 1;
-            }
-            case Quad quad -> {
-                QUADS.add(quad);
-                // The id can be calculated by the size of the list. And remember we add the model id to the floating point.
-                model.indexInList = QUADS.size() - 1;
-            }
-            case Box box -> {
-                BOXES.add(box);
-                model.indexInList = BOXES.size() - 1;
-            }
-            case ConstantMedium constantMedium -> {
-                CONSTANT_MEDIUMS.add(constantMedium);
-                model.indexInList = CONSTANT_MEDIUMS.size() - 1;
-                // Constant medium's boundary should not be put to the BVH, but only put to the ssbo
-                // because we are not checking its boundary's global hit.
-                // So remove that from ALL_MODELS.
-                ALL_MODELS.remove(constantMedium.getBoundary());
-            }
-            case null, default -> throw new RuntimeException("Unknown model type.");
+        if (model instanceof Sphere sphere) {
+            SPHERES.add(sphere);
+            model.indexInList = SPHERES.size() - 1;
+        } else if (model instanceof Quad quad) {
+            QUADS.add(quad);
+            model.indexInList = QUADS.size() - 1;
+        } else if (model instanceof Box box) {
+            BOXES.add(box);
+            model.indexInList = BOXES.size() - 1;
+        } else if (model instanceof ConstantMedium constantMedium) {
+            CONSTANT_MEDIUMS.add(constantMedium);
+            model.indexInList = CONSTANT_MEDIUMS.size() - 1;
+            // Remove constant medium's boundary from ALL_MODELS
+            ALL_MODELS.remove(constantMedium.getBoundary());
+        } else if (model == null) {
+            throw new RuntimeException("Model cannot be null.");
+        } else {
+            throw new RuntimeException("Unknown model type.");
         }
+
         ALL_MODELS.add(model);
     }
 
