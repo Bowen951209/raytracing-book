@@ -3,12 +3,8 @@ package net.bowen.draw.textures;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.system.MemoryStack;
 
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
-import java.nio.file.Paths;
-import java.util.Objects;
 
 import static org.lwjgl.opengl.GL43.*;
 import static org.lwjgl.stb.STBImage.*;
@@ -18,19 +14,11 @@ public class ImageTexture extends Texture {
         super(width, height, internalFormat, format, type, data);
     }
 
-    public static ImageTexture create(String resourcePath) {
-        return create(resourcePath, 0, 0);
+    public static ImageTexture create(String filePath) {
+        return create(filePath, 0, 0);
     }
 
-    public static ImageTexture create(String resourcePath, int shiftX, int shiftY) {
-        URL resource = Objects.requireNonNull(Texture.class.getClassLoader().getResource(resourcePath));
-        String filePath;
-        try {
-            filePath = String.valueOf(Paths.get(resource.toURI()).toFile());
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-
+    public static ImageTexture create(String filePath, int shiftX, int shiftY) {
         // Initialize LWJGL's memory stack management
         try (MemoryStack stack = MemoryStack.stackPush()) {
             // Allocate variables to store the image's width, height, and channel count
