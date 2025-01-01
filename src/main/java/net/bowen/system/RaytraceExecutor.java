@@ -48,6 +48,10 @@ public class RaytraceExecutor {
 
     public void setSamplePerPixel(int samplePerPixel) {
         this.samplePerPixel = samplePerPixel;
+
+        float sqrtSpp = (float) Math.sqrt(samplePerPixel);
+        program.setUniform1f("sqrt_spp", sqrtSpp);
+        program.setUniform1f("recip_sqrt_spp", 1f / sqrtSpp);
     }
 
     public void resetCompleteState() {

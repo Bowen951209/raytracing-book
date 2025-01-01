@@ -21,6 +21,8 @@ uniform int max_depth;        // Maximum number of ray bounces into scene.
 uniform int frame_count; // The accumulated frame count.
 uniform float u_rand_factor; // The initial random vector. This is for varying randomness from call to call.
 uniform vec3 background; // The background color of the scene.
+uniform float sqrt_spp; // Number of samples per pixel.
+uniform float recip_sqrt_spp; // 1 / sqrt_spp.
 
 layout(std140, binding = 0) uniform Camera {
     float viewport_width;
@@ -312,14 +314,17 @@ vec3 get_norm_coord() {
     // Y
     coord += pixel_coord.y * pixel_delta_v;
 
-    // random offset (for multi-sampling)
+    // Offsets the vector to a random point in the square sub-pixel specified by grid for an idealized unit square pixel
+    // [-.5,-.5] to [+.5,+.5].
     coord += pixel_sample_square();
     return coord;
 }
 
-Ray get_ray(vec3 normal_coord) {
+Ray get_ray() {
     // Construct a camera ray originating from the defocus disk and directed at a randomly
     // sampled point around the pixel location.
+
+    vec3 normal_coord = get_norm_coord();
 
     Ray ray;
     ray.o = (defocus_angle <= 0) ? camera_pos : defocus_disk_sample();;
@@ -359,7 +364,7 @@ void main() {
     ivec2 i_pixel_coord = ivec2(pixel_coord);
     image_size = vec2(imageSize(img_output));
     time = rand();
-    Ray ray = get_ray(get_norm_coord());
+    Ray ray = get_ray();
 
     // Get the color in the img_ouput object and mix it with the color of this raytrace.
     vec3 previous_color = imageLoad(img_output, i_pixel_coord).rgb;

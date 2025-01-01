@@ -52,7 +52,21 @@ vec3 rand_on_hemisphere(vec3 normal) {
 }
 
 vec3 pixel_sample_square() {
-    float px = -0.5 + rand();
-    float py = -0.5 + rand();
+    float sqrt_frame_count = mod(float(frame_count), sqrt_spp); // Column index in the stratified grid
+    float layer = float(frame_count) / sqrt_spp;                // Row index in the stratified grid
+
+    // Calculate the center point of the current grid cell
+    float base_x = (sqrt_frame_count + 0.5) * recip_sqrt_spp;
+    float base_y = (layer + 0.5) * recip_sqrt_spp;
+
+    // Add random jitter within the grid cell
+    float jitter_x = (rand() - 0.5) * recip_sqrt_spp;
+    float jitter_y = (rand() - 0.5) * recip_sqrt_spp;
+
+    // Adjust the sample position to the local pixel space
+    float px = base_x + jitter_x - 0.5;
+    float py = base_y + jitter_y - 0.5;
+
+    // Return the sampling position vector
     return px * pixel_delta_u + py * pixel_delta_v;
 }
