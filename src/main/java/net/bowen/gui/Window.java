@@ -31,6 +31,7 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 
 public class Window {
     private final String title;
+    private final String outputFile;
     private final int sceneId;
     private final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
@@ -45,15 +46,19 @@ public class Window {
 
     ShaderProgram screenQuadProgram, computeProgram;
 
-    public Window(String title, int width, int height, int sceneId) {
+    public Window(String title, int sceneId, int width, int height, int samplePerPixel, int maxDepth, String outputFile) {
         this.title = title;
         this.width = width;
         this.height = height;
         this.sceneId = sceneId;
+        this.outputFile = outputFile;
 
         System.out.println("LWJGL version: " + Version.getVersion());
 
         init();
+        guiRenderer.setSamplePerPixel(samplePerPixel);
+        guiRenderer.setMaxDepth(maxDepth);
+
         loop();
         free();
     }
@@ -102,7 +107,7 @@ public class Window {
         });
 
         // Frame buffer resize callback
-        glfwSetFramebufferSizeCallback(windowHandle, (window, width, height)->{
+        glfwSetFramebufferSizeCallback(windowHandle, (window, width, height) -> {
             this.width = width;
             this.height = height;
 
@@ -204,6 +209,14 @@ public class Window {
         raytraceExecutor.addCompleteListener(
                 () -> System.out.println("All samples have completed in " + raytraceExecutor.getFinishTime() + " ms.")
         );
+
+        if (outputFile != null) {
+            raytraceExecutor.addCompleteListener(() -> {
+                System.out.println("Saving the result to " + outputFile + "...");
+                screenQuadTexture.saveAsPNG(outputFile);
+                System.out.println("Saved.");
+            });
+        }
     }
 
     /**
