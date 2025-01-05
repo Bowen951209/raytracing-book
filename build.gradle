@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'application'
+    id 'distribution'
 }
 
 group = 'net.bowen'
@@ -48,5 +49,28 @@ application {
 jar {
     manifest {
         attributes "Main-Class": "net.bowen.Main"
+    }
+}
+
+distributions {
+    main {
+        contents {
+            from('textures') {
+                into 'textures'
+            }
+        }
+    }
+}
+
+// Change the start scripts to run the game from the root directory
+tasks.startScripts {
+    doLast {
+        unixScript.text = """
+        cd ..
+        """ + unixScript.text
+
+        windowsScript.text = """
+        cd ..
+        """ + windowsScript.text
     }
 }

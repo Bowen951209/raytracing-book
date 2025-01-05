@@ -67,6 +67,8 @@ public class Window {
         System.out.println("Initializing...");
         long startTime = System.currentTimeMillis();
 
+        System.out.println("Working directory: " + System.getProperty("user.dir"));
+
         initGLFW();
         initShaderPrograms();
         initScreenQuad();
