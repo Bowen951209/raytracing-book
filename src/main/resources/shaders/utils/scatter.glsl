@@ -1,7 +1,17 @@
 // should be included after utils/random.glsl
 
+bool near_zero(vec3 v) {
+    float s = 1e-8;
+    return abs(v.x) < s && abs(v.y) < s && abs(v.z) < s;
+}
+
 vec3 lambertian_scatter(vec3 normal) {
     return normal + rand_unit_vec();
+}
+
+float lambertian_scattering_pdf(vec3 normal, vec3 scatter_dir) {
+    float cos_theta = dot(normal, scatter_dir);
+    return cos_theta < 0 ? 0 : cos_theta / PI;
 }
 
 void metal_scatter(inout vec3 ray_dir, vec3 normal, float fuzz) {
@@ -33,4 +43,69 @@ void refract_scatter(inout vec3 ray_dir, vec3 normal, float eta) {
 
 void isotropic_scatter(inout Ray ray, vec3 p) {
     ray = Ray(p, rand_unit_vec());
+}
+
+bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int material_val) {
+    // Extract material ID from the upper 16 bits
+    int material_id = (material_val >> 16) & 0xFFFF;
+    bool should_scatter;
+
+    switch (material_id) {
+        case MATERIAL_LAMBERTIAN: {
+            ray.dir = lambertian_scatter(normal);
+            should_scatter = true;
+            break;
+        }
+        case MATERIAL_METAL: {
+            // Extract fuzz from the lower 16 bits
+            int fuzz_quantized = material_val & 0xFFFF;
+
+            // Convert fuzz back to float (undo the quantization)
+            float fuzz = float(fuzz_quantized) / 65535.0;
+
+            metal_scatter(ray.dir, normal, fuzz);
+            should_scatter = dot(ray.dir, normal) > 0.0; // check if the ray is absorbed by the metal
+            break;
+        }
+        case MATERIAL_DIELECTRIC: {
+            // Extract quantized IOR from the lower 16 bits
+            int iorQuantized = material_val & 0xFFFF;
+
+            // Convert quantized IOR back to normalized float [0, 1]
+            float normalizedIOR = float(iorQuantized) / 65535.0;
+
+            // Scale back to the original IOR range [1.0, 2.5]
+            float eta = mix(MIN_IOR, MAX_IOR, normalizedIOR);
+
+            if (is_front_face) eta = 1.0 / eta;
+            refract_scatter(ray.dir, normal, eta);
+            should_scatter = true;
+            break;
+        }
+        case MATERIAL_DIFFUSE_LIGHT:
+            return false;
+        case MATERIAL_ISOTROPIC: {
+            isotropic_scatter(ray, hit_point);
+            should_scatter = true;
+            break;
+        }
+    }
+
+    // Catch degenerate scatter direction.
+    if (near_zero(ray.dir))
+        ray.dir = normal;
+
+    return should_scatter;
+}
+
+float scattering_pdf(vec3 normal, vec3 scatter_dir, int material_val) {
+    // Extract material ID from the upper 16 bits
+    int material_id = (material_val >> 16) & 0xFFFF;
+
+    switch (material_id) {
+        case MATERIAL_LAMBERTIAN:
+            return lambertian_scattering_pdf(normal, scatter_dir);
+    }
+
+    return 0.0;
 }

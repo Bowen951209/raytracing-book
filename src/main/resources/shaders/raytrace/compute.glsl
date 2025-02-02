@@ -41,7 +41,7 @@ vec2 image_size;
 vec2 pixel_coord;
 float rand_factor = u_rand_factor;
 float time; // a factor that is in range [0, 1).
-vec3 albedo;
+vec3 attenuation;
 vec3 color_from_emission;
 int material;
 
@@ -166,66 +166,10 @@ vec3 lambertian_scatter(vec3 normal);
 void metal_scatter(inout vec3 ray_dir, vec3 normal, float fuzz);
 void refract_scatter(inout vec3 ray_dir, vec3 normal, float eta);
 void isotropic_scatter(inout Ray ray, vec3 p);
+bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int material_val);
 vec3 checkerboard(vec3 p);
 vec3 texture_color(vec3 p, int id, vec2 uv);
 bool hit_model(Ray ray, Interval ray_t, int model_idx, int model_type, inout HitRecord hit_record);
-
-bool near_zero(vec3 v) {
-    float s = 1e-8;
-    return abs(v.x) < s && abs(v.y) < s && abs(v.z) < s;
-}
-
-bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int material_val) {
-    // Extract material ID from the upper 16 bits
-    int material_id = (material_val >> 16) & 0xFFFF;
-    bool should_scatter;
-
-    switch (material_id) {
-        case MATERIAL_LAMBERTIAN: {
-            ray.dir = lambertian_scatter(normal);
-            should_scatter = true;
-            break;
-        }
-        case MATERIAL_METAL: {
-            // Extract fuzz from the lower 16 bits
-            int fuzz_quantized = material_val & 0xFFFF;
-
-            // Convert fuzz back to float (undo the quantization)
-            float fuzz = float(fuzz_quantized) / 65535.0;
-
-            metal_scatter(ray.dir, normal, fuzz);
-            should_scatter =  dot(ray.dir, normal) > 0.0; // check if the ray is absorbed by the metal
-            break;
-        }
-        case MATERIAL_DIELECTRIC: {
-            // Extract quantized IOR from the lower 16 bits
-            int iorQuantized = material_val & 0xFFFF;
-
-            // Convert quantized IOR back to normalized float [0, 1]
-            float normalizedIOR = float(iorQuantized) / 65535.0;
-
-            // Scale back to the original IOR range [1.0, 2.5]
-            float eta = mix(MIN_IOR, MAX_IOR, normalizedIOR);
-
-            if(is_front_face) eta = 1.0 / eta;
-            refract_scatter(ray.dir, normal, eta);
-            should_scatter =  true;
-            break;
-        }
-        case MATERIAL_DIFFUSE_LIGHT: return false;
-        case MATERIAL_ISOTROPIC: {
-            isotropic_scatter(ray, hit_point);
-            should_scatter = true;
-            break;
-        }
-    }
-
-    // Catch degenerate scatter direction.
-    if (near_zero(ray.dir))
-        ray.dir = normal;
-
-    return should_scatter;
-}
 
 int get_node_type(int id) {
     id &= 0xFFFF; // extract value
@@ -237,25 +181,25 @@ void set_material_properties(int model_idx, int model_type, vec3 p, vec2 uv) {
         case 1: // sphere
             Sphere sphere = spheres[model_idx];
             material = sphere.material;
-            albedo = texture_color(p, sphere.texture_id, uv);
+            attenuation = texture_color(p, sphere.texture_id, uv);
             color_from_emission = sphere.emission;
             return;
         case 2: // quad
             Quad quad = quads[model_idx];
             material = quad.material;
-            albedo = texture_color(p, quad.texture_id, uv);
+            attenuation = texture_color(p, quad.texture_id, uv);
             color_from_emission = quad.emission;
             return;
         case 3: // constant medium
             ConstantMedium medium = constant_mediums[model_idx];
             material = medium.phase_function;
-            albedo = texture_color(p, medium.texture_id, uv);
+            attenuation = texture_color(p, medium.texture_id, uv);
             color_from_emission = vec3(0.0);
             return;
         case 4: // box
             Box box = boxes[model_idx];
             material = box.quads[0].material;
-            albedo = texture_color(p, box.quads[0].texture_id, uv);
+            attenuation = texture_color(p, box.quads[0].texture_id, uv);
             color_from_emission = box.quads[0].emission;
             return;
     }
@@ -333,7 +277,7 @@ Ray get_ray() {
     return ray;
 }
 
-vec3 get_color(Ray ray) {
+vec3 ray_color(Ray ray) {
     vec3 final_color = vec3(0.0);
     vec3 accumulated_attenuation = vec3(1.0); // Start with no attenuation
 
@@ -353,7 +297,10 @@ vec3 get_color(Ray ray) {
         // Update ray origin.
         ray.o = hit_record.p;
 
-        accumulated_attenuation *= albedo;
+        float scattering_pdf = scattering_pdf(hit_record.normal, ray.dir, material);
+        float pdf_value = scattering_pdf;
+
+        accumulated_attenuation *= attenuation * scattering_pdf / pdf_value;
     }
 
     return final_color;
@@ -368,7 +315,7 @@ void main() {
 
     // Get the color in the img_ouput object and mix it with the color of this raytrace.
     vec3 previous_color = imageLoad(img_output, i_pixel_coord).rgb;
-    vec3 current_color = get_color(ray);
+    vec3 current_color = ray_color(ray);
     vec3 accumulated_color = (previous_color * float(frame_count - 1) + current_color) / float(frame_count);
 
     imageStore(img_output, i_pixel_coord, vec4(accumulated_color, 1.0));
