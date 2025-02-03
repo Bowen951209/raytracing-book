@@ -6,12 +6,11 @@ bool near_zero(vec3 v) {
 }
 
 vec3 lambertian_scatter(vec3 normal) {
-    return normal + rand_unit_vec();
+    return rand_on_hemisphere(normal);
 }
 
 float lambertian_scattering_pdf(vec3 normal, vec3 scatter_dir) {
-    float cos_theta = dot(normal, scatter_dir);
-    return cos_theta < 0 ? 0 : cos_theta / PI;
+    return 1 / (2 * PI);
 }
 
 void metal_scatter(inout vec3 ray_dir, vec3 normal, float fuzz) {
