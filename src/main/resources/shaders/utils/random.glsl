@@ -51,6 +51,18 @@ vec3 rand_on_hemisphere(vec3 normal) {
     return -on_unit_sphere;
 }
 
+vec3 rand_cosine_direction() {
+    float r1 = rand();
+    float r2 = rand();
+
+    float phi = 2.0 * PI * r1;
+    float x = cos(phi) * sqrt(r2);
+    float y = sin(phi) * sqrt(r2);
+    float z = sqrt(1.0 - r2);
+
+    return vec3(x, y, z);
+}
+
 vec3 pixel_sample_square() {
     float sqrt_frame_count = mod(float(frame_count), sqrt_spp); // Column index in the stratified grid
     float layer = float(frame_count) / sqrt_spp;                // Row index in the stratified grid

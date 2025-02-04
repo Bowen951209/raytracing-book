@@ -166,7 +166,7 @@ vec3 lambertian_scatter(vec3 normal);
 void metal_scatter(inout vec3 ray_dir, vec3 normal, float fuzz);
 void refract_scatter(inout vec3 ray_dir, vec3 normal, float eta);
 void isotropic_scatter(inout Ray ray, vec3 p);
-bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int material_val);
+bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int material_val, out float pdf);
 vec3 checkerboard(vec3 p);
 vec3 texture_color(vec3 p, int id, vec2 uv);
 bool hit_model(Ray ray, Interval ray_t, int model_idx, int model_type, inout HitRecord hit_record);
@@ -289,7 +289,9 @@ vec3 ray_color(Ray ray) {
             break;
         }
 
-        if(!scatter(ray, hit_record.p, hit_record.normal, hit_record.is_front_face, material)) {
+        float pdf_value;
+
+        if(!scatter(ray, hit_record.p, hit_record.normal, hit_record.is_front_face, material, pdf_value)) {
             final_color = accumulated_attenuation * color_from_emission;
             break;
         }
@@ -298,7 +300,7 @@ vec3 ray_color(Ray ray) {
         ray.o = hit_record.p;
 
         float scattering_pdf = scattering_pdf(hit_record.normal, ray.dir, material);
-        float pdf_value = scattering_pdf;
+        pdf_value = scattering_pdf;
 
         accumulated_attenuation *= attenuation * scattering_pdf / pdf_value;
     }

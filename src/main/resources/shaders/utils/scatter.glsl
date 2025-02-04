@@ -1,12 +1,15 @@
-// should be included after utils/random.glsl
+// should be included after utils/random.glsl & utils/math.glsl
 
 bool near_zero(vec3 v) {
     float s = 1e-8;
     return abs(v.x) < s && abs(v.y) < s && abs(v.z) < s;
 }
 
-vec3 lambertian_scatter(vec3 normal) {
-    return rand_on_hemisphere(normal);
+vec3 lambertian_scatter(vec3 normal, out float pdf) {
+    vec3 w;
+    vec3 scatter_dir = transform_onb(rand_cosine_direction(), normal, w);
+    pdf = dot(scatter_dir, w) / PI;
+    return normalize(scatter_dir);
 }
 
 float lambertian_scattering_pdf(vec3 normal, vec3 scatter_dir) {
@@ -44,14 +47,14 @@ void isotropic_scatter(inout Ray ray, vec3 p) {
     ray = Ray(p, rand_unit_vec());
 }
 
-bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int material_val) {
+bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int material_val, out float pdf) {
     // Extract material ID from the upper 16 bits
     int material_id = (material_val >> 16) & 0xFFFF;
     bool should_scatter;
 
     switch (material_id) {
         case MATERIAL_LAMBERTIAN: {
-            ray.dir = lambertian_scatter(normal);
+            ray.dir = lambertian_scatter(normal, pdf);
             should_scatter = true;
             break;
         }
