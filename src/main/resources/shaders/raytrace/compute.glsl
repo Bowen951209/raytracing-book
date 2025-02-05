@@ -176,19 +176,19 @@ int get_node_type(int id) {
     return id;
 }
 
-void set_material_properties(int model_idx, int model_type, vec3 p, vec2 uv) {
+void set_material_properties(int model_idx, int model_type, vec3 p, vec2 uv, bool is_front_face) {
     switch(model_type) {
         case 1: // sphere
             Sphere sphere = spheres[model_idx];
             material = sphere.material;
             attenuation = texture_color(p, sphere.texture_id, uv);
-            color_from_emission = sphere.emission;
+            color_from_emission = is_front_face ? sphere.emission : vec3(0.0);
             return;
         case 2: // quad
             Quad quad = quads[model_idx];
             material = quad.material;
             attenuation = texture_color(p, quad.texture_id, uv);
-            color_from_emission = quad.emission;
+            color_from_emission = is_front_face ? quad.emission : vec3(0.0);
             return;
         case 3: // constant medium
             ConstantMedium medium = constant_mediums[model_idx];
@@ -200,7 +200,7 @@ void set_material_properties(int model_idx, int model_type, vec3 p, vec2 uv) {
             Box box = boxes[model_idx];
             material = box.quads[0].material;
             attenuation = texture_color(p, box.quads[0].texture_id, uv);
-            color_from_emission = box.quads[0].emission;
+            color_from_emission = is_front_face ? box.quads[0].emission : vec3(0.0);
             return;
     }
 }
@@ -231,7 +231,7 @@ bool trace_through_bvh(Ray ray, Interval ray_t, out HitRecord hit_record) {
                         has_hit = true;
                         ray_t.max = hit_record.t;
 
-                        set_material_properties(model_idx, node_type, hit_record.p, hit_record.uv);
+                        set_material_properties(model_idx, node_type, hit_record.p, hit_record.uv, hit_record.is_front_face);
                     }
                     model_idx = (node.right_id >> 16) & 0xFFFF;
                     node_type = get_node_type(node.right_id);
