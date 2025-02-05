@@ -296,11 +296,30 @@ vec3 ray_color(Ray ray) {
             break;
         }
 
+        vec3 on_light = vec3(rand(213, 343), 554, rand(227, 332));
+        vec3 to_light = on_light - hit_record.p;
+        float distance_squared = dot(to_light, to_light);
+        to_light = normalize(to_light);
+
+        if(dot(to_light, hit_record.normal) < 0) {
+            final_color = accumulated_attenuation * color_from_emission;
+            break;
+        }
+
+        float light_area = (343-213) * (332-227);
+        float light_cosine = abs(to_light.y);
+        if(light_cosine < 0.000001) {
+            final_color = accumulated_attenuation * color_from_emission;
+            break;
+        }
+
+        pdf_value = distance_squared / (light_cosine * light_area);
+
         // Update ray origin.
         ray.o = hit_record.p;
+        ray.dir = to_light;
 
         float scattering_pdf = scattering_pdf(hit_record.normal, ray.dir, material);
-        pdf_value = scattering_pdf;
 
         accumulated_attenuation *= attenuation * scattering_pdf / pdf_value;
     }
