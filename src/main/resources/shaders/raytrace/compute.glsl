@@ -146,6 +146,7 @@ layout(std430, binding = 4) buffer BoxBuffer {
 #include <utils/texture.glsl>
 #include <utils/hitting.glsl>
 #include <utils/scatter.glsl>
+#include <utils/pdf.glsl>
 
 // The placeholders for the functions in the includes.
 bool interval_surrounds(Interval interval, float x);
@@ -170,6 +171,9 @@ bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int
 vec3 checkerboard(vec3 p);
 vec3 texture_color(vec3 p, int id, vec2 uv);
 bool hit_model(Ray ray, Interval ray_t, int model_idx, int model_type, inout HitRecord hit_record);
+vec3 cosine_generate_direction(vec3 normal, out vec3 w);
+float cosine_pdf_value(vec3 direction, vec3 w);
+float scattering_pdf(vec3 normal, vec3 scatter_dir, int material);
 
 int get_node_type(int id) {
     id &= 0xFFFF; // extract value
@@ -296,28 +300,12 @@ vec3 ray_color(Ray ray) {
             break;
         }
 
-        vec3 on_light = vec3(rand(213, 343), 554, rand(227, 332));
-        vec3 to_light = on_light - hit_record.p;
-        float distance_squared = dot(to_light, to_light);
-        to_light = normalize(to_light);
+        vec3 w;
 
-        if(dot(to_light, hit_record.normal) < 0) {
-            final_color = accumulated_attenuation * color_from_emission;
-            break;
-        }
-
-        float light_area = (343-213) * (332-227);
-        float light_cosine = abs(to_light.y);
-        if(light_cosine < 0.000001) {
-            final_color = accumulated_attenuation * color_from_emission;
-            break;
-        }
-
-        pdf_value = distance_squared / (light_cosine * light_area);
-
-        // Update ray origin.
+        // Update ray.
         ray.o = hit_record.p;
-        ray.dir = to_light;
+        ray.dir =  cosine_generate_direction(hit_record.normal, w);
+        pdf_value = cosine_pdf_value(ray.dir, w);
 
         float scattering_pdf = scattering_pdf(hit_record.normal, ray.dir, material);
 
