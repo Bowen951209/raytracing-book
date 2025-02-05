@@ -43,8 +43,13 @@ void refract_scatter(inout vec3 ray_dir, vec3 normal, float eta) {
     }
 }
 
-void isotropic_scatter(inout Ray ray, vec3 p) {
+void isotropic_scatter(inout Ray ray, vec3 p, out float pdf) {
     ray = Ray(p, rand_unit_vec());
+    pdf = 1.0 / (4.0 * PI);
+}
+
+float isotropic_scattering_pdf() {
+    return 1.0 / (4.0 * PI);
 }
 
 bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int material_val, out float pdf) {
@@ -87,7 +92,7 @@ bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int
         case MATERIAL_DIFFUSE_LIGHT:
             return false;
         case MATERIAL_ISOTROPIC: {
-            isotropic_scatter(ray, hit_point);
+            isotropic_scatter(ray, hit_point, pdf);
             should_scatter = true;
             break;
         }
@@ -107,6 +112,8 @@ float scattering_pdf(vec3 normal, vec3 scatter_dir, int material_val) {
     switch (material_id) {
         case MATERIAL_LAMBERTIAN:
             return lambertian_scattering_pdf(normal, scatter_dir);
+        case MATERIAL_ISOTROPIC:
+            return isotropic_scattering_pdf();
     }
 
     return 0.0;
