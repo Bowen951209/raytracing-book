@@ -177,6 +177,8 @@ bool hit_model(Ray ray, Interval ray_t, int model_idx, int model_type, inout Hit
 vec3 cosine_generate_direction(vec3 normal, out vec3 w);
 float cosine_pdf_value(vec3 direction, vec3 w);
 float scattering_pdf(vec3 normal, vec3 scatter_dir, int material);
+float quad_pdf_value(vec3 origin, vec3 direction, Quad quad);
+vec3 quad_random(vec3 origin, Quad quad);
 
 int get_node_type(int id) {
     id &= 0xFFFF; // extract value
@@ -303,12 +305,17 @@ vec3 ray_color(Ray ray) {
             break;
         }
 
-        // Update ray.
-        ray.o = hit_record.p;
-        ray.dir = quad_random(ray.o, light);
-        pdf_value = quad_pdf_value(ray.o, ray.dir, light);
+        vec3 w;
 
-        if(pdf_value < 0.000001) {
+        // Update ray.
+        // The book uses a class to handle mixture of pdfs. But since we're writing in a non-object-oriented language,
+        // I'll just write the code the way below to do the same thing. Hopefully it's also clear enough.
+        ray.o = hit_record.p;
+        ray.dir = rand() < 0.5 ? quad_random(ray.o, light) : cosine_generate_direction(hit_record.normal, w);
+        pdf_value = 0.5 * quad_pdf_value(ray.o, ray.dir, light) + 0.5 * cosine_pdf_value(ray.dir, w);
+
+        // If the PDF value is zero, the direction is invalid.
+        if(pdf_value == 0.0) {
             final_color = accumulated_attenuation * color_from_emission;
             break;
         }
