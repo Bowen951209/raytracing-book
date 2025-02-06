@@ -6,6 +6,7 @@ import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
 import net.bowen.draw.*;
 import net.bowen.draw.models.rasterization.Quad;
+import net.bowen.draw.models.raytrace.RaytraceModel;
 import net.bowen.draw.textures.Texture;
 import net.bowen.system.*;
 import org.lwjgl.Version;
@@ -189,6 +190,7 @@ public class Window {
     }
 
     private void initModels() {
+        RaytraceModel.setComputeProgram(computeProgram);
         scene = new Scene(sceneId, width, height, computeProgram);
     }
 

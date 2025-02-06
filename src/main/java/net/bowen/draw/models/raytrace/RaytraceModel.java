@@ -2,6 +2,7 @@ package net.bowen.draw.models.raytrace;
 
 import net.bowen.draw.materials.Material;
 import net.bowen.system.BufferObject;
+import net.bowen.system.ShaderProgram;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.ByteBuffer;
@@ -23,7 +24,10 @@ public abstract class RaytraceModel {
     public static final List<ConstantMedium> CONSTANT_MEDIUMS = new ArrayList<>();
     public static final List<BVHNode> BVH_NODES = new ArrayList<>();
     public static final List<Box> BOXES = new ArrayList<>();
+
     private static BufferObject sphereSSBO, quadSSBO, boxesSSBO, constantMediumSSBO, bvhSSBO;
+    private static ShaderProgram computeProgram;
+    private static Quad light;
 
     protected final Material material;
 
@@ -40,6 +44,14 @@ public abstract class RaytraceModel {
 
     public AABB boundingBox() {
         return bbox;
+    }
+
+    public static void setComputeProgram(ShaderProgram computeProgram) {
+        RaytraceModel.computeProgram = computeProgram;
+    }
+
+    public static void setLight(Quad light) {
+        RaytraceModel.light = light;
     }
 
     protected int getModelId() {
@@ -115,6 +127,10 @@ public abstract class RaytraceModel {
 
         // Recursively create BVH nodes for models. Each node will put itself to the BVH_NODES list.
         new BVHNode(ALL_MODELS, 0, ALL_MODELS.size());
+
+        // Put light uniform to program.
+        if (light != null)
+            putLightToProgram();
 
         bvhSSBO.bind();
         putBVHNodesToProgram();
@@ -212,5 +228,23 @@ public abstract class RaytraceModel {
 
         bvhSSBO.uploadData(buffer, GL_STATIC_DRAW);
         MemoryUtil.memFree(buffer);
+    }
+
+    private static void putLightToProgram() {
+        float[] normal = new float[]{light.normal.x, light.normal.y, light.normal.z};
+        float[] q = new float[]{light.q.x, light.q.y, light.q.z};
+        float[] u = new float[]{light.u.x, light.u.y, light.u.z};
+        float[] v = new float[]{light.v.x, light.v.y, light.v.z};
+        float[] emission = new float[]{light.material.emitted().r, light.material.emitted().g, light.material.emitted().b};
+
+        computeProgram.setUniform3fv("light.normal", normal);
+        computeProgram.setUniform1f("light.d", light.d);
+        computeProgram.setUniform3fv("light.q", q);
+        computeProgram.setUniform1i("light.material", light.material.getMaterialPackedValue());
+        computeProgram.setUniform3fv("light.u", u);
+        computeProgram.setUniform1i("light.texture", light.material.getTexturePackedValue());
+        computeProgram.setUniform3fv("light.v", v);
+        computeProgram.setUniform1f("light.area", light.area);
+        computeProgram.setUniform3fv("light.emission", emission);
     }
 }

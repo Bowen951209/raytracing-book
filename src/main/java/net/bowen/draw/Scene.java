@@ -217,9 +217,12 @@ public final class Scene {
         Material green = new Lambertian(SolidTexture.registerColor(0.12f, 0.45f, 0.15f));
         Material light = new DiffuseLight(new Color(15, 15, 15));
 
+        Quad lightQuad = new Quad(new Vector3f(343, 554, 332), new Vector3f(-130, 0, 0), new Vector3f(0, 0, -105), light);
+
         RaytraceModel.addModel(new Quad(new Vector3f(555, 0, 0), new Vector3f(0, 555, 0), new Vector3f(0, 0, 555), green));
         RaytraceModel.addModel(new Quad(new Vector3f(0, 0, 0), new Vector3f(0, 555, 0), new Vector3f(0, 0, 555), red));
-        RaytraceModel.addModel(new Quad(new Vector3f(343, 554, 332), new Vector3f(-130, 0, 0), new Vector3f(0, 0, -105), light));
+        RaytraceModel.addModel(lightQuad);
+        RaytraceModel.setLight(lightQuad);
         RaytraceModel.addModel(new Quad(new Vector3f(0, 0, 0), new Vector3f(555, 0, 0), new Vector3f(0, 0, 555), white));
         RaytraceModel.addModel(new Quad(new Vector3f(555, 555, 555), new Vector3f(-555, 0, 0), new Vector3f(0, 0, -555), white));
         RaytraceModel.addModel(new Quad(new Vector3f(0, 0, 555), new Vector3f(555, 0, 0), new Vector3f(0, 555, 0), white));

@@ -7,9 +7,9 @@ import org.joml.Vector3f;
 import java.nio.ByteBuffer;
 
 public class Quad extends RaytraceModel {
-    private final Vector3f q, u, v, normal;
-    private final float d;
-    private final Material material;
+    public final Vector3f q, u, v, normal;
+    public final float d, area;
+    public final Material material;
 
     /**
      * Construct a quad for compute shader. The size and shape are determined by the u and v. The position/origin is
@@ -25,7 +25,9 @@ public class Quad extends RaytraceModel {
         this.u = u;
         this.v = v;
         this.material = material;
-        this.normal = new Vector3f(u).cross(v).normalize();
+        this.normal = new Vector3f(u).cross(v);
+        this.area = normal.length();
+        this.normal.normalize();
         this.d = new Vector3f(normal).dot(q);
 
         setBoundingBox();
@@ -46,7 +48,7 @@ public class Quad extends RaytraceModel {
         DataUtils.putToBuffer(u, buffer);
         buffer.putInt(material.getTexturePackedValue());
         DataUtils.putToBuffer(v, buffer);
-        buffer.putFloat(0); // padding
+        buffer.putFloat(area);
         DataUtils.putToBuffer(material.emitted(), buffer);
         buffer.putFloat(0); // padding
     }

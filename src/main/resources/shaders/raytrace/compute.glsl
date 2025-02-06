@@ -83,6 +83,7 @@ struct Quad {
     vec3 u; // a component vector that structs the quad.
     int texture_id; // texture information
     vec3 v; // a component vector that structs the quad.
+    float area;
     vec3 emission;
 };
 
@@ -138,6 +139,8 @@ layout(std430, binding = 3) buffer ConstantMediumBuffer {
 layout(std430, binding = 4) buffer BoxBuffer {
     Box boxes[];
 };
+
+uniform Quad light;
 
 // The includes. Must be after the global variables and ssbos because some of the includes use those.
 #include <utils/math.glsl>
@@ -300,12 +303,15 @@ vec3 ray_color(Ray ray) {
             break;
         }
 
-        vec3 w;
-
         // Update ray.
         ray.o = hit_record.p;
-        ray.dir =  cosine_generate_direction(hit_record.normal, w);
-        pdf_value = cosine_pdf_value(ray.dir, w);
+        ray.dir = quad_random(ray.o, light);
+        pdf_value = quad_pdf_value(ray.o, ray.dir, light);
+
+        if(pdf_value < 0.000001) {
+            final_color = accumulated_attenuation * color_from_emission;
+            break;
+        }
 
         float scattering_pdf = scattering_pdf(hit_record.normal, ray.dir, material);
 
