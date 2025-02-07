@@ -216,6 +216,7 @@ public final class Scene {
         Material white = new Lambertian(SolidTexture.registerColor(0.73f, 0.73f, 0.73f));
         Material green = new Lambertian(SolidTexture.registerColor(0.12f, 0.45f, 0.15f));
         Material light = new DiffuseLight(new Color(15, 15, 15));
+        Material aluminum = new Metal(SolidTexture.registerColor(0.8f, 0.85f, 0.88f), 0.0f);
 
         Quad lightQuad = new Quad(new Vector3f(343, 554, 332), new Vector3f(-130, 0, 0), new Vector3f(0, 0, -105), light);
 
@@ -229,7 +230,7 @@ public final class Scene {
 
         Vector3f box1Translation = new Vector3f(265,0,295);
         Vector3f box1Rotation = new Vector3f(0, (float) Math.toRadians(15), 0);
-        Box box1 = new Box(new Vector3f(0, 0, 0), new Vector3f(165,330,165), box1Translation, box1Rotation, white);
+        Box box1 = new Box(new Vector3f(0, 0, 0), new Vector3f(165,330,165), box1Translation, box1Rotation, aluminum);
 
         Vector3f box2Translation = new Vector3f(130,0,65);
         Vector3f box2Rotation = new Vector3f(0, (float) Math.toRadians(-18), 0);

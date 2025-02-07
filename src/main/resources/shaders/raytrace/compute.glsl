@@ -170,7 +170,7 @@ vec3 lambertian_scatter(vec3 normal);
 void metal_scatter(inout vec3 ray_dir, vec3 normal, float fuzz);
 void refract_scatter(inout vec3 ray_dir, vec3 normal, float eta);
 void isotropic_scatter(inout Ray ray, vec3 p);
-bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int material_val, out float pdf);
+bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int material_val, out bool scatter_pdf, out vec3 w);
 vec3 checkerboard(vec3 p);
 vec3 texture_color(vec3 p, int id, vec2 uv);
 bool hit_model(Ray ray, Interval ray_t, int model_idx, int model_type, inout HitRecord hit_record);
@@ -298,21 +298,26 @@ vec3 ray_color(Ray ray) {
             break;
         }
 
-        float pdf_value;
+        bool skip_pdf;
+        vec3 w; // w is a reference vector for cosine_pdf_value to evaluate. It is not used in every pdf function.
 
-        if(!scatter(ray, hit_record.p, hit_record.normal, hit_record.is_front_face, material, pdf_value)) {
+        if(!scatter(ray, hit_record.p, hit_record.normal, hit_record.is_front_face, material, skip_pdf, w)) {
             final_color = accumulated_attenuation * color_from_emission;
             break;
         }
 
-        vec3 w;
+        // Update the ray origin to the hit point.
+        ray.o = hit_record.p;
 
-        // Update ray.
+        if (skip_pdf) {
+            accumulated_attenuation *= attenuation;
+            continue;
+        }
+
         // The book uses a class to handle mixture of pdfs. But since we're writing in a non-object-oriented language,
         // I'll just write the code the way below to do the same thing. Hopefully it's also clear enough.
-        ray.o = hit_record.p;
-        ray.dir = rand() < 0.5 ? quad_random(ray.o, light) : cosine_generate_direction(hit_record.normal, w);
-        pdf_value = 0.5 * quad_pdf_value(ray.o, ray.dir, light) + 0.5 * cosine_pdf_value(ray.dir, w);
+        if (rand() < 0.5) ray.dir = quad_random(ray.o, light);
+        float pdf_value = 0.5 * quad_pdf_value(ray.o, ray.dir, light) + 0.5 * pdf_value(ray.dir, material, w);
 
         // If the PDF value is zero, the direction is invalid.
         if(pdf_value == 0.0) {
