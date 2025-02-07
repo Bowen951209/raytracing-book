@@ -148,8 +148,8 @@ uniform Quad light;
 #include <utils/random.glsl>
 #include <utils/texture.glsl>
 #include <utils/hitting.glsl>
-#include <utils/scatter.glsl>
 #include <utils/pdf.glsl>
+#include <utils/scatter.glsl>
 
 // The placeholders for the functions in the includes.
 bool interval_surrounds(Interval interval, float x);
@@ -174,8 +174,6 @@ bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int
 vec3 checkerboard(vec3 p);
 vec3 texture_color(vec3 p, int id, vec2 uv);
 bool hit_model(Ray ray, Interval ray_t, int model_idx, int model_type, inout HitRecord hit_record);
-vec3 cosine_generate_direction(vec3 normal, out vec3 w);
-float cosine_pdf_value(vec3 direction, vec3 w);
 float scattering_pdf(vec3 normal, vec3 scatter_dir, int material);
 float quad_pdf_value(vec3 origin, vec3 direction, Quad quad);
 vec3 quad_random(vec3 origin, Quad quad);

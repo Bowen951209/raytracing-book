@@ -1,4 +1,4 @@
-// should be included after utils/random.glsl & utils/math.glsl
+// should be included after utils/random.glsl, utils/math.glsl & utils/pdf.glsl
 
 bool near_zero(vec3 v) {
     float s = 1e-8;
@@ -6,8 +6,7 @@ bool near_zero(vec3 v) {
 }
 
 vec3 lambertian_scatter(vec3 normal, out vec3 w) {
-    vec3 scatter_dir = transform_onb(rand_cosine_direction(), normal, w);
-    return normalize(scatter_dir);
+    return cosine_generate_direction(normal, w);
 }
 
 void metal_scatter(inout vec3 ray_dir, vec3 normal, float fuzz) {
@@ -38,7 +37,7 @@ void refract_scatter(inout vec3 ray_dir, vec3 normal, float eta) {
 }
 
 void isotropic_scatter(inout Ray ray, vec3 p) {
-    ray = Ray(p, rand_unit_vec());
+    ray = Ray(p, sphere_generate_direction());
 }
 
 bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int material_val, out bool skip_pdf, out vec3 w) {
