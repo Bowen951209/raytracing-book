@@ -15,8 +15,15 @@ public class Main {
             cmd = parser.parse(options, args);
         } catch (ParseException e) {
             System.out.println(e.getMessage());
-            formatter.printHelp("utility-name", options);
+            formatter.printHelp("OpenGL Ray Tracer", options);
             System.exit(1);
+            return;
+        }
+
+        // Print help if requested.
+        if (cmd.hasOption("help")) {
+            formatter.printHelp("OpenGL Ray Tracer", options);
+            System.exit(0);
             return;
         }
 
@@ -35,6 +42,10 @@ public class Main {
 
     private static Options getOptions() {
         Options options = new Options();
+
+        Option helpOption = new Option("h", "help", false, "print help message");
+        helpOption.setRequired(false);
+        options.addOption(helpOption);
 
         Option sceneOption = new Option("s", "scene", true, "scene ID");
         sceneOption.setRequired(false);
