@@ -4,10 +4,13 @@ import imgui.ImGui;
 import imgui.flag.ImGuiConfigFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
-import net.bowen.draw.*;
+import net.bowen.draw.Scene;
 import net.bowen.draw.models.rasterization.Quad;
 import net.bowen.draw.textures.Texture;
-import net.bowen.system.*;
+import net.bowen.system.Deleteable;
+import net.bowen.system.RaytraceExecutor;
+import net.bowen.system.Shader;
+import net.bowen.system.ShaderProgram;
 import org.lwjgl.Version;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
@@ -24,7 +27,6 @@ import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.GL_WRITE_ONLY;
 import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL30.GL_FRAMEBUFFER_SRGB;
 import static org.lwjgl.opengl.GL30.GL_RGBA32F;
 import static org.lwjgl.opengl.GL43.GL_COMPUTE_SHADER;
 import static org.lwjgl.system.MemoryStack.stackPush;
@@ -156,9 +158,6 @@ public class Window {
         // creates the GLCapabilities instance and makes the OpenGL
         // bindings available for use.
         GL.createCapabilities();
-
-        // Gamma correction (gamma2.2)
-        glEnable(GL_FRAMEBUFFER_SRGB);
     }
 
     private void initImGui() {
