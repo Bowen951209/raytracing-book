@@ -9,6 +9,8 @@ public class GuiRenderer implements GuiLayer {
     private final int[] samplePerPixel = new int[1];
     private final int[] maxDepth = new int[1];
 
+    private String savedImagePath;
+
     public GuiRenderer(Window window) {
         this.window = window;
         raytraceExecutor = window.getRaytraceExecutor();
@@ -43,6 +45,14 @@ public class GuiRenderer implements GuiLayer {
         // Slider for max bounces of ray.
         if (ImGui.sliderInt("Max Depth", maxDepth, 1, 50)) {
             maxDepthUpdate();
+        }
+
+        // Save image button.
+        if (ImGui.button("Save Image")) {
+            savedImagePath = window.saveImage("image.png");
+        }
+        if (savedImagePath != null) {
+            ImGui.text("Image saved to: " + savedImagePath);
         }
     }
 

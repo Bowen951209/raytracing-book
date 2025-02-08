@@ -4,10 +4,13 @@ import imgui.ImGui;
 import imgui.flag.ImGuiConfigFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
-import net.bowen.draw.*;
+import net.bowen.draw.Scene;
 import net.bowen.draw.models.rasterization.Quad;
 import net.bowen.draw.textures.Texture;
-import net.bowen.system.*;
+import net.bowen.system.Deleteable;
+import net.bowen.system.RaytraceExecutor;
+import net.bowen.system.Shader;
+import net.bowen.system.ShaderProgram;
 import org.lwjgl.Version;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
@@ -16,6 +19,7 @@ import org.lwjgl.system.MemoryStack;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
+import java.io.File;
 import java.nio.IntBuffer;
 
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
@@ -23,7 +27,6 @@ import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.GL_WRITE_ONLY;
 import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL30.GL_FRAMEBUFFER_SRGB;
 import static org.lwjgl.opengl.GL30.GL_RGBA32F;
 import static org.lwjgl.opengl.GL43.GL_COMPUTE_SHADER;
 import static org.lwjgl.system.MemoryStack.stackPush;
@@ -31,7 +34,7 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 
 public class Window {
     private final String title;
-    private final String outputFile;
+    private String outputFile;
     private final int sceneId;
     private final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
@@ -155,9 +158,6 @@ public class Window {
         // creates the GLCapabilities instance and makes the OpenGL
         // bindings available for use.
         GL.createCapabilities();
-
-        // Gamma correction (gamma2.2)
-        glEnable(GL_FRAMEBUFFER_SRGB);
     }
 
     private void initImGui() {
@@ -212,13 +212,25 @@ public class Window {
                 () -> System.out.println("All samples have completed in " + raytraceExecutor.getFinishTime() + " ms.")
         );
 
-        if (outputFile != null) {
-            raytraceExecutor.addCompleteListener(() -> {
-                System.out.println("Saving the result to " + outputFile + "...");
-                screenQuadTexture.saveAsPNG(outputFile);
-                System.out.println("Saved.");
-            });
-        }
+        if (outputFile != null)
+            raytraceExecutor.addCompleteListener(this::saveImage);
+    }
+
+    /**
+     * Immediately save the ray tracing result on {@link #screenQuadTexture} to the path provided in {@link #outputFile}.
+     * @return The absolute path string of the saved image.
+     */
+    private String saveImage() {
+        System.out.println("Saving the result to " + outputFile + "...");
+        screenQuadTexture.saveAsPNG(outputFile);
+        String absolutePath = new File(outputFile).getAbsolutePath();
+        System.out.println("A PNG file has been saved to: " + absolutePath);
+        return absolutePath;
+    }
+
+    public String saveImage(String outputFile) {
+        this.outputFile = outputFile;
+        return saveImage();
     }
 
     /**
