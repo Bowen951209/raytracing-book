@@ -7,6 +7,7 @@ import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static org.lwjgl.opengl.GL42.GL_SHADER_IMAGE_ACCESS_BARRIER_BIT;
 import static org.lwjgl.opengl.GL42.glMemoryBarrier;
@@ -70,6 +71,21 @@ public class RaytraceExecutor {
 
     public int getFinishTime() {
         return finishTime;
+    }
+
+    public String getFinishTimeString() {
+        long hours = TimeUnit.MILLISECONDS.toHours(finishTime);
+        long minutes = TimeUnit.MILLISECONDS.toMinutes(finishTime) % 60;
+        long seconds = TimeUnit.MILLISECONDS.toSeconds(finishTime) % 60;
+        int millis = finishTime % 1000;
+
+        StringBuilder sb = new StringBuilder();
+
+        if (hours > 0) sb.append(hours).append("hour ");
+        if (minutes > 0) sb.append(minutes).append("minutes ");
+        sb.append(seconds).append(".").append(millis).append("seconds");
+
+        return sb.toString();
     }
 
     public int getLastDispatchTime() {

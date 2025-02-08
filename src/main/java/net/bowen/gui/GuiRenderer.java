@@ -33,7 +33,7 @@ public class GuiRenderer implements GuiLayer {
 
         // If all samples are finished, add more text.
         if (finishTime != -1) {
-            sampleInfoText += "Render completed in: " + finishTime + " ms.";
+            sampleInfoText += "Render completed in: " + raytraceExecutor.getFinishTimeString() + ".";
         }
         ImGui.text(sampleInfoText);
 
