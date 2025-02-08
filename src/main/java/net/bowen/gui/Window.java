@@ -4,11 +4,13 @@ import imgui.ImGui;
 import imgui.flag.ImGuiConfigFlags;
 import imgui.gl3.ImGuiImplGl3;
 import imgui.glfw.ImGuiImplGlfw;
-import net.bowen.draw.*;
+import net.bowen.draw.Scene;
 import net.bowen.draw.models.rasterization.Quad;
-import net.bowen.draw.models.raytrace.RaytraceModel;
 import net.bowen.draw.textures.Texture;
-import net.bowen.system.*;
+import net.bowen.system.Deleteable;
+import net.bowen.system.RaytraceExecutor;
+import net.bowen.system.Shader;
+import net.bowen.system.ShaderProgram;
 import org.lwjgl.Version;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.glfw.GLFWVidMode;
@@ -190,7 +192,6 @@ public class Window {
     }
 
     private void initModels() {
-        RaytraceModel.setComputeProgram(computeProgram);
         scene = new Scene(sceneId, width, height, computeProgram);
     }
 

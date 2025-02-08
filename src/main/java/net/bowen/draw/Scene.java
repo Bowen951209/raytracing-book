@@ -216,28 +216,27 @@ public final class Scene {
         Material white = new Lambertian(SolidTexture.registerColor(0.73f, 0.73f, 0.73f));
         Material green = new Lambertian(SolidTexture.registerColor(0.12f, 0.45f, 0.15f));
         Material light = new DiffuseLight(new Color(15, 15, 15));
-        Material aluminum = new Metal(SolidTexture.registerColor(0.8f, 0.85f, 0.88f), 0.0f);
 
         Quad lightQuad = new Quad(new Vector3f(343, 554, 332), new Vector3f(-130, 0, 0), new Vector3f(0, 0, -105), light);
 
         RaytraceModel.addModel(new Quad(new Vector3f(555, 0, 0), new Vector3f(0, 555, 0), new Vector3f(0, 0, 555), green));
         RaytraceModel.addModel(new Quad(new Vector3f(0, 0, 0), new Vector3f(0, 555, 0), new Vector3f(0, 0, 555), red));
         RaytraceModel.addModel(lightQuad);
-        RaytraceModel.setLight(lightQuad);
+        RaytraceModel.addLight(lightQuad);
         RaytraceModel.addModel(new Quad(new Vector3f(0, 0, 0), new Vector3f(555, 0, 0), new Vector3f(0, 0, 555), white));
         RaytraceModel.addModel(new Quad(new Vector3f(555, 555, 555), new Vector3f(-555, 0, 0), new Vector3f(0, 0, -555), white));
         RaytraceModel.addModel(new Quad(new Vector3f(0, 0, 555), new Vector3f(555, 0, 0), new Vector3f(0, 555, 0), white));
 
         Vector3f box1Translation = new Vector3f(265,0,295);
         Vector3f box1Rotation = new Vector3f(0, (float) Math.toRadians(15), 0);
-        Box box1 = new Box(new Vector3f(0, 0, 0), new Vector3f(165,330,165), box1Translation, box1Rotation, aluminum);
+        Box box1 = new Box(new Vector3f(0, 0, 0), new Vector3f(165,330,165), box1Translation, box1Rotation, white);
 
-        Vector3f box2Translation = new Vector3f(130,0,65);
-        Vector3f box2Rotation = new Vector3f(0, (float) Math.toRadians(-18), 0);
-        Box box2 = new Box(new Vector3f(0, 0, 0), new Vector3f(165,165,165), box2Translation, box2Rotation, white);
+        Material glass = new Dielectric(1.5f);
+        Sphere glassSphere = new Sphere(new Vector3f(190, 90, 190), 90, glass);
 
         RaytraceModel.addModel(box1);
-        RaytraceModel.addModel(box2);
+        RaytraceModel.addModel(glassSphere);
+        RaytraceModel.addLight(glassSphere);
 
         RaytraceModel.putModelsToProgram();
         SolidTexture.putDataToTexture();

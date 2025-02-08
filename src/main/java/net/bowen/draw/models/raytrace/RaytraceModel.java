@@ -2,7 +2,6 @@ package net.bowen.draw.models.raytrace;
 
 import net.bowen.draw.materials.Material;
 import net.bowen.system.BufferObject;
-import net.bowen.system.ShaderProgram;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.ByteBuffer;
@@ -18,16 +17,16 @@ public abstract class RaytraceModel {
     public static int CONSTANT_MEDIUM_ID = 3;
     public static int BOX_ID = 4;
 
-    public static final List<RaytraceModel> ALL_MODELS = new ArrayList<>();
-    public static final List<Sphere> SPHERES = new ArrayList<>();
-    public static final List<Quad> QUADS = new ArrayList<>();
-    public static final List<ConstantMedium> CONSTANT_MEDIUMS = new ArrayList<>();
     public static final List<BVHNode> BVH_NODES = new ArrayList<>();
-    public static final List<Box> BOXES = new ArrayList<>();
 
-    private static BufferObject sphereSSBO, quadSSBO, boxesSSBO, constantMediumSSBO, bvhSSBO;
-    private static ShaderProgram computeProgram;
-    private static Quad light;
+    private static final List<RaytraceModel> ALL_MODELS = new ArrayList<>();
+    private static final List<Sphere> SPHERES = new ArrayList<>();
+    private static final List<Quad> QUADS = new ArrayList<>();
+    private static final List<ConstantMedium> CONSTANT_MEDIUMS = new ArrayList<>();
+    private static final List<Box> BOXES = new ArrayList<>();
+    private static final List<RaytraceModel> LIGHTS = new ArrayList<>();
+
+    private static BufferObject sphereSSBO, quadSSBO, boxesSSBO, constantMediumSSBO, bvhSSBO, lightsSSBO;
 
     protected final Material material;
 
@@ -46,17 +45,13 @@ public abstract class RaytraceModel {
         return bbox;
     }
 
-    public static void setComputeProgram(ShaderProgram computeProgram) {
-        RaytraceModel.computeProgram = computeProgram;
-    }
-
-    public static void setLight(Quad light) {
-        RaytraceModel.light = light;
-    }
-
     protected int getModelId() {
         //  If this method is not overridden, the model should not have a valid model id.
         return -1;
+    }
+
+    public static void addLight(RaytraceModel light) {
+        LIGHTS.add(light);
     }
 
     public static void addModel(RaytraceModel model) {
@@ -110,6 +105,11 @@ public abstract class RaytraceModel {
         constantMediumSSBO = new BufferObject(GL_SHADER_STORAGE_BUFFER);
         // Bind the SSBO to a binding point
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, constantMediumSSBO.getId());
+
+        // Lights:
+        lightsSSBO = new BufferObject(GL_SHADER_STORAGE_BUFFER);
+        // Bind the SSBO to a binding point
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, lightsSSBO.getId());
     }
 
     public static void putModelsToProgram() {
@@ -125,12 +125,11 @@ public abstract class RaytraceModel {
         constantMediumSSBO.bind();
         putConstantMediumsToProgram();
 
+        lightsSSBO.bind();
+        putLightsToProgram();
+
         // Recursively create BVH nodes for models. Each node will put itself to the BVH_NODES list.
         new BVHNode(ALL_MODELS, 0, ALL_MODELS.size());
-
-        // Put light uniform to program.
-        if (light != null)
-            putLightToProgram();
 
         bvhSSBO.bind();
         putBVHNodesToProgram();
@@ -230,21 +229,19 @@ public abstract class RaytraceModel {
         MemoryUtil.memFree(buffer);
     }
 
-    private static void putLightToProgram() {
-        float[] normal = new float[]{light.normal.x, light.normal.y, light.normal.z};
-        float[] q = new float[]{light.q.x, light.q.y, light.q.z};
-        float[] u = new float[]{light.u.x, light.u.y, light.u.z};
-        float[] v = new float[]{light.v.x, light.v.y, light.v.z};
-        float[] emission = new float[]{light.material.emitted().r, light.material.emitted().g, light.material.emitted().b};
+    private static void putLightsToProgram() {
+        ByteBuffer buffer = MemoryUtil.memAlloc((1 + LIGHTS.size()) * Integer.BYTES);
+        buffer.putInt(LIGHTS.size());
+        for (RaytraceModel light : LIGHTS) {
+            // pack model type and model index in a single int.
+            buffer.putInt(light.getModelId() << 16 | light.indexInList);
+        }
+        buffer.flip();
 
-        computeProgram.setUniform3fv("light.normal", normal);
-        computeProgram.setUniform1f("light.d", light.d);
-        computeProgram.setUniform3fv("light.q", q);
-        computeProgram.setUniform1i("light.material", light.material.getMaterialPackedValue());
-        computeProgram.setUniform3fv("light.u", u);
-        computeProgram.setUniform1i("light.texture", light.material.getTexturePackedValue());
-        computeProgram.setUniform3fv("light.v", v);
-        computeProgram.setUniform1f("light.area", light.area);
-        computeProgram.setUniform3fv("light.emission", emission);
+        if (lightsSSBO == null)
+            throw new NullPointerException("ssbo is null. Has it been initialized?");
+
+        lightsSSBO.uploadData(buffer, GL_STATIC_DRAW);
+        MemoryUtil.memFree(buffer);
     }
 }

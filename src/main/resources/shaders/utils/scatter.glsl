@@ -5,8 +5,8 @@ bool near_zero(vec3 v) {
     return abs(v.x) < s && abs(v.y) < s && abs(v.z) < s;
 }
 
-vec3 lambertian_scatter(vec3 normal, out vec3 w) {
-    return cosine_generate_direction(normal, w);
+vec3 lambertian_scatter(vec3 normal) {
+    return cosine_generate_direction(normal);
 }
 
 void metal_scatter(inout vec3 ray_dir, vec3 normal, float fuzz) {
@@ -40,14 +40,14 @@ void isotropic_scatter(inout Ray ray, vec3 p) {
     ray = Ray(p, sphere_generate_direction());
 }
 
-bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int material_val, out bool skip_pdf, out vec3 w) {
+bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int material_val, out bool skip_pdf) {
     // Extract material ID from the upper 16 bits
     int material_id = (material_val >> 16) & 0xFFFF;
     bool should_scatter;
 
     switch (material_id) {
         case MATERIAL_LAMBERTIAN: {
-            ray.dir = lambertian_scatter(normal, w);
+            ray.dir = lambertian_scatter(normal);
             should_scatter = true;
             skip_pdf = false;
             break;

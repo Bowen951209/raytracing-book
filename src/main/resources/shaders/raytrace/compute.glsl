@@ -11,6 +11,10 @@ const int MATERIAL_DIELECTRIC = 2;
 const int MATERIAL_DIFFUSE_LIGHT = 3;
 const int MATERIAL_ISOTROPIC = 4;
 const int PERLIN_POINT_COUNT = 256;
+const int MODEL_SPHERE = 1;
+const int MODEL_QUAD = 2;
+const int MODEL_CONSTANT_MEDIUM = 3;
+const int MODEL_BOX = 4;
 
 // Values for extracting the IOR/eta from  material_val.
 const float MIN_IOR = 1.0;
@@ -140,7 +144,13 @@ layout(std430, binding = 4) buffer BoxBuffer {
     Box boxes[];
 };
 
-uniform Quad light;
+layout(std430, binding = 5) buffer LightsBuffer {
+    int lights_count;
+
+    // The packed values. The upper 16 bits store the model type, and
+    // the lower 16 bits store the model index in their buffers.
+    int lights[];
+};
 
 // The includes. Must be after the global variables and ssbos because some of the includes use those.
 #include <utils/math.glsl>
@@ -170,13 +180,14 @@ vec3 lambertian_scatter(vec3 normal);
 void metal_scatter(inout vec3 ray_dir, vec3 normal, float fuzz);
 void refract_scatter(inout vec3 ray_dir, vec3 normal, float eta);
 void isotropic_scatter(inout Ray ray, vec3 p);
-bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int material_val, out bool scatter_pdf, out vec3 w);
+bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int material_val, out bool scatter_pdf);
 vec3 checkerboard(vec3 p);
 vec3 texture_color(vec3 p, int id, vec2 uv);
 bool hit_model(Ray ray, Interval ray_t, int model_idx, int model_type, inout HitRecord hit_record);
 float scattering_pdf(vec3 normal, vec3 scatter_dir, int material);
 float quad_pdf_value(vec3 origin, vec3 direction, Quad quad);
 vec3 quad_random(vec3 origin, Quad quad);
+float material_pdf_value(vec3 direction, int material, vec3 normal);
 
 int get_node_type(int id) {
     id &= 0xFFFF; // extract value
@@ -297,9 +308,8 @@ vec3 ray_color(Ray ray) {
         }
 
         bool skip_pdf;
-        vec3 w; // w is a reference vector for cosine_pdf_value to evaluate. It is not used in every pdf function.
 
-        if(!scatter(ray, hit_record.p, hit_record.normal, hit_record.is_front_face, material, skip_pdf, w)) {
+        if(!scatter(ray, hit_record.p, hit_record.normal, hit_record.is_front_face, material, skip_pdf)) {
             final_color = accumulated_attenuation * color_from_emission;
             break;
         }
@@ -314,8 +324,9 @@ vec3 ray_color(Ray ray) {
 
         // The book uses a class to handle mixture of pdfs. But since we're writing in a non-object-oriented language,
         // I'll just write the code the way below to do the same thing. Hopefully it's also clear enough.
-        if (rand() < 0.5) ray.dir = quad_random(ray.o, light);
-        float pdf_value = 0.5 * quad_pdf_value(ray.o, ray.dir, light) + 0.5 * pdf_value(ray.dir, material, w);
+        if (rand() < 0.5) ray.dir = lights_random(ray.o);
+        float lights_pdf_value = lights_pdf_value(ray.o, ray.dir);
+        float pdf_value = 0.5 * lights_pdf_value + 0.5 * material_pdf_value(ray.dir, material, hit_record.normal);
 
         // If the PDF value is zero, the direction is invalid.
         if(pdf_value == 0.0) {

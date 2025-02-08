@@ -11,6 +11,11 @@ float rand(float minVal, float maxVal) {
     return minVal + rand() * (maxVal - minVal);
 }
 
+// Return a random integer value in the range [minVal, maxVal].
+int rand_int(int minVal, int maxVal) {
+    return int(floor(rand(float(minVal), float(maxVal + 1))));
+}
+
 vec3 random_in_unit_disk() {
     while (true) {
         vec3 p = vec3(rand(-1.0, 1.0), rand(-1.0, 1.0), 0.0);
@@ -59,6 +64,17 @@ vec3 rand_cosine_direction() {
     float x = cos(phi) * sqrt(r2);
     float y = sin(phi) * sqrt(r2);
     float z = sqrt(1.0 - r2);
+
+    return vec3(x, y, z);
+}
+
+vec3 rand_to_sphere(float radius, float distance_squared) {
+    float r1 = rand();
+    float r2 = rand();
+    float z = 1.0 + r2 * (sqrt(1.0 - radius * radius / distance_squared) - 1.0);
+    float phi = 2.0 * PI * r1;
+    float x = cos(phi) * sqrt(1.0 - z * z);
+    float y = sin(phi) * sqrt(1.0 - z * z);
 
     return vec3(x, y, z);
 }
