@@ -1,8 +1,3 @@
-const int MODEL_SPHERE = 1;
-const int MODEL_QUAD = 2;
-const int MODEL_CONSTANT_MEDIUM = 3;
-const int MODEL_BOX = 4;
-
 bool interval_surrounds(Interval interval, float x);
 bool interval_contains(Interval interval, float x);
 

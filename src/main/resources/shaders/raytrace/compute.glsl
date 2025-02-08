@@ -11,6 +11,10 @@ const int MATERIAL_DIELECTRIC = 2;
 const int MATERIAL_DIFFUSE_LIGHT = 3;
 const int MATERIAL_ISOTROPIC = 4;
 const int PERLIN_POINT_COUNT = 256;
+const int MODEL_SPHERE = 1;
+const int MODEL_QUAD = 2;
+const int MODEL_CONSTANT_MEDIUM = 3;
+const int MODEL_BOX = 4;
 
 // Values for extracting the IOR/eta from  material_val.
 const float MIN_IOR = 1.0;
@@ -83,6 +87,7 @@ struct Quad {
     vec3 u; // a component vector that structs the quad.
     int texture_id; // texture information
     vec3 v; // a component vector that structs the quad.
+    float area;
     vec3 emission;
 };
 
@@ -139,12 +144,21 @@ layout(std430, binding = 4) buffer BoxBuffer {
     Box boxes[];
 };
 
+layout(std430, binding = 5) buffer LightsBuffer {
+    int lights_count;
+
+    // The packed values. The upper 16 bits store the model type, and
+    // the lower 16 bits store the model index in their buffers.
+    int lights[];
+};
+
 // The includes. Must be after the global variables and ssbos because some of the includes use those.
 #include <utils/math.glsl>
 #include <utils/interval.glsl>
 #include <utils/random.glsl>
 #include <utils/texture.glsl>
 #include <utils/hitting.glsl>
+#include <utils/pdf.glsl>
 #include <utils/scatter.glsl>
 
 // The placeholders for the functions in the includes.
@@ -166,29 +180,33 @@ vec3 lambertian_scatter(vec3 normal);
 void metal_scatter(inout vec3 ray_dir, vec3 normal, float fuzz);
 void refract_scatter(inout vec3 ray_dir, vec3 normal, float eta);
 void isotropic_scatter(inout Ray ray, vec3 p);
-bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int material_val, out float pdf);
+bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int material_val, out bool scatter_pdf);
 vec3 checkerboard(vec3 p);
 vec3 texture_color(vec3 p, int id, vec2 uv);
 bool hit_model(Ray ray, Interval ray_t, int model_idx, int model_type, inout HitRecord hit_record);
+float scattering_pdf(vec3 normal, vec3 scatter_dir, int material);
+float quad_pdf_value(vec3 origin, vec3 direction, Quad quad);
+vec3 quad_random(vec3 origin, Quad quad);
+float material_pdf_value(vec3 direction, int material, vec3 normal);
 
 int get_node_type(int id) {
     id &= 0xFFFF; // extract value
     return id;
 }
 
-void set_material_properties(int model_idx, int model_type, vec3 p, vec2 uv) {
+void set_material_properties(int model_idx, int model_type, vec3 p, vec2 uv, bool is_front_face) {
     switch(model_type) {
         case 1: // sphere
             Sphere sphere = spheres[model_idx];
             material = sphere.material;
             attenuation = texture_color(p, sphere.texture_id, uv);
-            color_from_emission = sphere.emission;
+            color_from_emission = is_front_face ? sphere.emission : vec3(0.0);
             return;
         case 2: // quad
             Quad quad = quads[model_idx];
             material = quad.material;
             attenuation = texture_color(p, quad.texture_id, uv);
-            color_from_emission = quad.emission;
+            color_from_emission = is_front_face ? quad.emission : vec3(0.0);
             return;
         case 3: // constant medium
             ConstantMedium medium = constant_mediums[model_idx];
@@ -200,7 +218,7 @@ void set_material_properties(int model_idx, int model_type, vec3 p, vec2 uv) {
             Box box = boxes[model_idx];
             material = box.quads[0].material;
             attenuation = texture_color(p, box.quads[0].texture_id, uv);
-            color_from_emission = box.quads[0].emission;
+            color_from_emission = is_front_face ? box.quads[0].emission : vec3(0.0);
             return;
     }
 }
@@ -231,7 +249,7 @@ bool trace_through_bvh(Ray ray, Interval ray_t, out HitRecord hit_record) {
                         has_hit = true;
                         ray_t.max = hit_record.t;
 
-                        set_material_properties(model_idx, node_type, hit_record.p, hit_record.uv);
+                        set_material_properties(model_idx, node_type, hit_record.p, hit_record.uv, hit_record.is_front_face);
                     }
                     model_idx = (node.right_id >> 16) & 0xFFFF;
                     node_type = get_node_type(node.right_id);
@@ -289,18 +307,34 @@ vec3 ray_color(Ray ray) {
             break;
         }
 
-        float pdf_value;
+        bool skip_pdf;
 
-        if(!scatter(ray, hit_record.p, hit_record.normal, hit_record.is_front_face, material, pdf_value)) {
+        if(!scatter(ray, hit_record.p, hit_record.normal, hit_record.is_front_face, material, skip_pdf)) {
             final_color = accumulated_attenuation * color_from_emission;
             break;
         }
 
-        // Update ray origin.
+        // Update the ray origin to the hit point.
         ray.o = hit_record.p;
 
+        if (skip_pdf) {
+            accumulated_attenuation *= attenuation;
+            continue;
+        }
+
+        // The book uses a class to handle mixture of pdfs. But since we're writing in a non-object-oriented language,
+        // I'll just write the code the way below to do the same thing. Hopefully it's also clear enough.
+        if (rand() < 0.5) ray.dir = lights_random(ray.o);
+        float lights_pdf_value = lights_pdf_value(ray.o, ray.dir);
+        float pdf_value = 0.5 * lights_pdf_value + 0.5 * material_pdf_value(ray.dir, material, hit_record.normal);
+
+        // If the PDF value is zero, the direction is invalid.
+        if(pdf_value == 0.0) {
+            final_color = accumulated_attenuation * color_from_emission;
+            break;
+        }
+
         float scattering_pdf = scattering_pdf(hit_record.normal, ray.dir, material);
-        pdf_value = scattering_pdf;
 
         accumulated_attenuation *= attenuation * scattering_pdf / pdf_value;
     }

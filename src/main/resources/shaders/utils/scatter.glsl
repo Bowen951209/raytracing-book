@@ -1,19 +1,12 @@
-// should be included after utils/random.glsl & utils/math.glsl
+// should be included after utils/random.glsl, utils/math.glsl & utils/pdf.glsl
 
 bool near_zero(vec3 v) {
     float s = 1e-8;
     return abs(v.x) < s && abs(v.y) < s && abs(v.z) < s;
 }
 
-vec3 lambertian_scatter(vec3 normal, out float pdf) {
-    vec3 w;
-    vec3 scatter_dir = transform_onb(rand_cosine_direction(), normal, w);
-    pdf = dot(scatter_dir, w) / PI;
-    return normalize(scatter_dir);
-}
-
-float lambertian_scattering_pdf(vec3 normal, vec3 scatter_dir) {
-    return 1 / (2 * PI);
+vec3 lambertian_scatter(vec3 normal) {
+    return cosine_generate_direction(normal);
 }
 
 void metal_scatter(inout vec3 ray_dir, vec3 normal, float fuzz) {
@@ -43,24 +36,20 @@ void refract_scatter(inout vec3 ray_dir, vec3 normal, float eta) {
     }
 }
 
-void isotropic_scatter(inout Ray ray, vec3 p, out float pdf) {
-    ray = Ray(p, rand_unit_vec());
-    pdf = 1.0 / (4.0 * PI);
+void isotropic_scatter(inout Ray ray, vec3 p) {
+    ray = Ray(p, sphere_generate_direction());
 }
 
-float isotropic_scattering_pdf() {
-    return 1.0 / (4.0 * PI);
-}
-
-bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int material_val, out float pdf) {
+bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int material_val, out bool skip_pdf) {
     // Extract material ID from the upper 16 bits
     int material_id = (material_val >> 16) & 0xFFFF;
     bool should_scatter;
 
     switch (material_id) {
         case MATERIAL_LAMBERTIAN: {
-            ray.dir = lambertian_scatter(normal, pdf);
+            ray.dir = lambertian_scatter(normal);
             should_scatter = true;
+            skip_pdf = false;
             break;
         }
         case MATERIAL_METAL: {
@@ -72,6 +61,7 @@ bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int
 
             metal_scatter(ray.dir, normal, fuzz);
             should_scatter = dot(ray.dir, normal) > 0.0; // check if the ray is absorbed by the metal
+            skip_pdf = true;
             break;
         }
         case MATERIAL_DIELECTRIC: {
@@ -87,13 +77,15 @@ bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int
             if (is_front_face) eta = 1.0 / eta;
             refract_scatter(ray.dir, normal, eta);
             should_scatter = true;
+            skip_pdf = true;
             break;
         }
         case MATERIAL_DIFFUSE_LIGHT:
             return false;
         case MATERIAL_ISOTROPIC: {
-            isotropic_scatter(ray, hit_point, pdf);
+            isotropic_scatter(ray, hit_point);
             should_scatter = true;
+            skip_pdf = false;
             break;
         }
     }
@@ -103,18 +95,4 @@ bool scatter(inout Ray ray, vec3 hit_point, vec3 normal, bool is_front_face, int
         ray.dir = normal;
 
     return should_scatter;
-}
-
-float scattering_pdf(vec3 normal, vec3 scatter_dir, int material_val) {
-    // Extract material ID from the upper 16 bits
-    int material_id = (material_val >> 16) & 0xFFFF;
-
-    switch (material_id) {
-        case MATERIAL_LAMBERTIAN:
-            return lambertian_scattering_pdf(normal, scatter_dir);
-        case MATERIAL_ISOTROPIC:
-            return isotropic_scattering_pdf();
-    }
-
-    return 0.0;
 }

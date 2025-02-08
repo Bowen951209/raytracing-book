@@ -17,13 +17,16 @@ public abstract class RaytraceModel {
     public static int CONSTANT_MEDIUM_ID = 3;
     public static int BOX_ID = 4;
 
-    public static final List<RaytraceModel> ALL_MODELS = new ArrayList<>();
-    public static final List<Sphere> SPHERES = new ArrayList<>();
-    public static final List<Quad> QUADS = new ArrayList<>();
-    public static final List<ConstantMedium> CONSTANT_MEDIUMS = new ArrayList<>();
     public static final List<BVHNode> BVH_NODES = new ArrayList<>();
-    public static final List<Box> BOXES = new ArrayList<>();
-    private static BufferObject sphereSSBO, quadSSBO, boxesSSBO, constantMediumSSBO, bvhSSBO;
+
+    private static final List<RaytraceModel> ALL_MODELS = new ArrayList<>();
+    private static final List<Sphere> SPHERES = new ArrayList<>();
+    private static final List<Quad> QUADS = new ArrayList<>();
+    private static final List<ConstantMedium> CONSTANT_MEDIUMS = new ArrayList<>();
+    private static final List<Box> BOXES = new ArrayList<>();
+    private static final List<RaytraceModel> LIGHTS = new ArrayList<>();
+
+    private static BufferObject sphereSSBO, quadSSBO, boxesSSBO, constantMediumSSBO, bvhSSBO, lightsSSBO;
 
     protected final Material material;
 
@@ -45,6 +48,10 @@ public abstract class RaytraceModel {
     protected int getModelId() {
         //  If this method is not overridden, the model should not have a valid model id.
         return -1;
+    }
+
+    public static void addLight(RaytraceModel light) {
+        LIGHTS.add(light);
     }
 
     public static void addModel(RaytraceModel model) {
@@ -98,6 +105,11 @@ public abstract class RaytraceModel {
         constantMediumSSBO = new BufferObject(GL_SHADER_STORAGE_BUFFER);
         // Bind the SSBO to a binding point
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, constantMediumSSBO.getId());
+
+        // Lights:
+        lightsSSBO = new BufferObject(GL_SHADER_STORAGE_BUFFER);
+        // Bind the SSBO to a binding point
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, lightsSSBO.getId());
     }
 
     public static void putModelsToProgram() {
@@ -112,6 +124,9 @@ public abstract class RaytraceModel {
 
         constantMediumSSBO.bind();
         putConstantMediumsToProgram();
+
+        lightsSSBO.bind();
+        putLightsToProgram();
 
         // Recursively create BVH nodes for models. Each node will put itself to the BVH_NODES list.
         new BVHNode(ALL_MODELS, 0, ALL_MODELS.size());
@@ -211,6 +226,22 @@ public abstract class RaytraceModel {
             throw new NullPointerException("ssbo is null. Has it been initialized?");
 
         bvhSSBO.uploadData(buffer, GL_STATIC_DRAW);
+        MemoryUtil.memFree(buffer);
+    }
+
+    private static void putLightsToProgram() {
+        ByteBuffer buffer = MemoryUtil.memAlloc((1 + LIGHTS.size()) * Integer.BYTES);
+        buffer.putInt(LIGHTS.size());
+        for (RaytraceModel light : LIGHTS) {
+            // pack model type and model index in a single int.
+            buffer.putInt(light.getModelId() << 16 | light.indexInList);
+        }
+        buffer.flip();
+
+        if (lightsSSBO == null)
+            throw new NullPointerException("ssbo is null. Has it been initialized?");
+
+        lightsSSBO.uploadData(buffer, GL_STATIC_DRAW);
         MemoryUtil.memFree(buffer);
     }
 }
