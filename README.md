@@ -3,9 +3,11 @@
 This repository contains a **GPU-based ray tracing engine** implemented in **Java** and **OpenGL**, developed by 
 following the [Ray Tracing in One Weekend book series](https://raytracing.github.io/). The project demonstrates the practical implementation of
 real-time ray tracing techniques with GPU acceleration. Due to inherent design differences between `GLSL` and `C++`,
-certain techniques are implemented differently while achieving the same results.
+certain techniques are implemented differently while achieving the same results. You can check out some render results
+in the [galleries](./galleries) directory.
 
-![book 2 final scene](./galleries/book2_final.jpg)
+![book 2 final scene](./galleries/book2_final.png)
+![book 3 final scene](./galleries/book3_final.png)
 
 ## Features
 - **GPU Acceleration**: Leverages the power of modern GPUs for high-performance ray tracing.
