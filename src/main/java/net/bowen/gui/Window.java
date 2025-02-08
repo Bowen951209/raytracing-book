@@ -16,6 +16,7 @@ import org.lwjgl.system.MemoryStack;
 
 import java.awt.*;
 import java.awt.geom.AffineTransform;
+import java.io.File;
 import java.nio.IntBuffer;
 
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
@@ -31,7 +32,7 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 
 public class Window {
     private final String title;
-    private final String outputFile;
+    private String outputFile;
     private final int sceneId;
     private final ImGuiImplGlfw imGuiGlfw = new ImGuiImplGlfw();
     private final ImGuiImplGl3 imGuiGl3 = new ImGuiImplGl3();
@@ -212,13 +213,25 @@ public class Window {
                 () -> System.out.println("All samples have completed in " + raytraceExecutor.getFinishTime() + " ms.")
         );
 
-        if (outputFile != null) {
-            raytraceExecutor.addCompleteListener(() -> {
-                System.out.println("Saving the result to " + outputFile + "...");
-                screenQuadTexture.saveAsPNG(outputFile);
-                System.out.println("Saved.");
-            });
-        }
+        if (outputFile != null)
+            raytraceExecutor.addCompleteListener(this::saveImage);
+    }
+
+    /**
+     * Immediately save the ray tracing result on {@link #screenQuadTexture} to the path provided in {@link #outputFile}.
+     * @return The absolute path string of the saved image.
+     */
+    private String saveImage() {
+        System.out.println("Saving the result to " + outputFile + "...");
+        screenQuadTexture.saveAsPNG(outputFile);
+        String absolutePath = new File(outputFile).getAbsolutePath();
+        System.out.println("A PNG file has been saved to: " + absolutePath);
+        return absolutePath;
+    }
+
+    public String saveImage(String outputFile) {
+        this.outputFile = outputFile;
+        return saveImage();
     }
 
     /**
