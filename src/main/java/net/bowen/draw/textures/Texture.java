@@ -83,16 +83,23 @@ public class Texture extends Deleteable {
         System.out.println("Texture(" + textureID + ") deleted.");
     }
 
-public void saveAsPNG(String filename) {
-    bind();
-    ByteBuffer buffer = MemoryUtil.memAlloc(width * height * 3); // Assuming 3 bytes per pixel (RGB)
-    try {
-        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, buffer);
-        STBImageWrite.stbi_write_png(filename, width, height, 3, buffer, width * 3);
-    } finally {
-        MemoryUtil.memFree(buffer);
+    public void saveAsPNG(String filename) {
+        bind();
+        ByteBuffer buffer = MemoryUtil.memAlloc(width * height * 3); // Assuming 3 bytes per pixel (RGB)
+        try {
+            glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, buffer);
+
+            // Apply gamma correction (2.2)
+            for (int i = 0; i < buffer.capacity(); i++) {
+                float corrected = (float) Math.pow((buffer.get(i) & 0xFF) / 255.0, 1.0 / 2.2) * 255.0f;
+                buffer.put(i, (byte) corrected);
+            }
+
+            STBImageWrite.stbi_write_png(filename, width, height, 3, buffer, width * 3);
+        } finally {
+            MemoryUtil.memFree(buffer);
+        }
     }
-}
 
     public void putData(ByteBuffer data) {
         if (width == -1 || height == -1)
