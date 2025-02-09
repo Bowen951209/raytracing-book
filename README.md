@@ -25,9 +25,14 @@ configuring that in [build.gradle](./build.gradle), you should also be able to r
 
 ## Getting Started
 - ### Download Pre-built Releases
-  You can download the pre-built releases from the [releases page](https://github.com/Bowen951209/raytracing-book/releases).  
-  After extracting the archive, you can run the program by executing the `raytracing_book.bat` file in the `bin`
-  directory using `cmd`. You can also run it with arguments. Use `--help` or `-h` to see the available options.
+  You can download the pre-built releases from the [releases page](https://github.com/Bowen951209/raytracing-book/releases).
+  The latest release is packed as a fat jar. You can run it using the following command:
+  ```bash
+    java -jar raytracing-book.jar
+  ```
+  To run older builds, execute the `raytracing_book.bat` file in the `bin`
+  directory using `cmd`.
+  You can also run it with arguments. Use `--help` or `-h` to see the available options.
 
 
 - ### Compile It Yourself

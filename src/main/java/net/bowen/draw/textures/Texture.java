@@ -3,9 +3,12 @@ package net.bowen.draw.textures;
 import net.bowen.system.Deleteable;
 import net.bowen.system.ShaderProgram;
 import org.lwjgl.opengl.GL43;
-import org.lwjgl.stb.STBImageWrite;
 import org.lwjgl.system.MemoryUtil;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
@@ -95,7 +98,22 @@ public class Texture extends Deleteable {
                 buffer.put(i, (byte) corrected);
             }
 
-            STBImageWrite.stbi_write_png(filename, width, height, 3, buffer, width * 3);
+            // Use Java's ImageIO to write the image
+            BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            for (int y = 0; y < height; y++) {
+                for (int x = 0; x < width; x++) {
+                    int index = (x + (width * y)) * 3;
+                    int r = buffer.get(index) & 0xFF;
+                    int g = buffer.get(index + 1) & 0xFF;
+                    int b = buffer.get(index + 2) & 0xFF;
+                    int rgb = (r << 16) | (g << 8) | b;
+                    image.setRGB(x, y, rgb);
+                }
+            }
+            File outputFile = new File(filename);
+            ImageIO.write(image, "png", outputFile);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to save texture as PNG", e);
         } finally {
             MemoryUtil.memFree(buffer);
         }

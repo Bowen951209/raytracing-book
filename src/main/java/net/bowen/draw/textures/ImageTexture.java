@@ -1,46 +1,40 @@
 package net.bowen.draw.textures;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.system.MemoryStack;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
 
 import static org.lwjgl.opengl.GL43.*;
-import static org.lwjgl.stb.STBImage.*;
 
 public class ImageTexture extends Texture {
     public ImageTexture(int width, int height, int internalFormat, int format, int type, ByteBuffer data) {
         super(width, height, internalFormat, format, type, data);
     }
 
-    public static ImageTexture create(String filePath) {
-        return create(filePath, 0, 0);
+    public static ImageTexture create(String resourcePath) {
+        return create(resourcePath, 0, 0);
     }
 
-    public static ImageTexture create(String filePath, int shiftX, int shiftY) {
-        // Initialize LWJGL's memory stack management
-        try (MemoryStack stack = MemoryStack.stackPush()) {
-            // Allocate variables to store the image's width, height, and channel count
-            IntBuffer width = stack.mallocInt(1);
-            IntBuffer height = stack.mallocInt(1);
-            IntBuffer channels = stack.mallocInt(1);
+    public static ImageTexture create(String resourcePath, int shiftX, int shiftY) {
+        try {
+            // Load the image using ImageIO
+            InputStream imageInputStream = ImageTexture.class.getClassLoader().getResourceAsStream(resourcePath);
+            assert imageInputStream != null;
+            BufferedImage bufferedImage = ImageIO.read(imageInputStream);
 
-            // Load the image using STBImage
-            stbi_set_flip_vertically_on_load(true); // Flip the image vertically for correct OpenGL texture orientation
+            if (bufferedImage == null) {
+                throw new RuntimeException("Failed to load image: " + resourcePath);
+            }
 
-            ByteBuffer image = stbi_load(filePath, width, height, channels, 0);
+            int imgWidth = bufferedImage.getWidth();
+            int imgHeight = bufferedImage.getHeight();
+            int imgChannels = bufferedImage.getColorModel().getNumComponents();
 
-            // Check if the image was successfully loaded
-            if (image == null)
-                throw new RuntimeException("Failed to load image: " + stbi_failure_reason());
-
-            // Retrieve the width, height, and channel count of the image
-            int imgWidth = width.get();
-            int imgHeight = height.get();
-            int imgChannels = channels.get();
-
-            System.out.println("Image loaded: " + filePath);
+            System.out.println("Image loaded: " + resourcePath);
             System.out.println("Width: " + imgWidth + ", Height: " + imgHeight + ", Channels: " + imgChannels);
 
             // Determine the image format based on the number of channels
@@ -55,24 +49,34 @@ public class ImageTexture extends Texture {
             }
 
             // Create a buffer for the shifted image
-            ByteBuffer shiftedBuffer = BufferUtils.createByteBuffer(image.capacity());
+            ByteBuffer shiftedBuffer = BufferUtils.createByteBuffer(imgWidth * imgHeight * imgChannels);
 
             for (int y = 0; y < imgHeight; y++) {
-                // Calculate the source row with wrapping for vertical shift
-                int sourceY = (y - shiftY + imgHeight) % imgHeight;
+                // Calculate the source row with wrapping for vertical shift and flip vertically
+                int sourceY = (imgHeight - 1 - (y - shiftY + imgHeight) % imgHeight);
 
                 for (int x = 0; x < imgWidth; x++) {
                     // Calculate the source column with wrapping for horizontal shift
                     int sourceX = (x - shiftX + imgWidth) % imgWidth;
 
-                    // Calculate source and destination indices in the 1D buffer
-                    int srcIndex = (sourceY * imgWidth + sourceX) * imgChannels; // Source pixel
-                    int dstIndex = (y * imgWidth + x) * imgChannels;             // Destination pixel
+                    // Get the pixel data
+                    int pixel = bufferedImage.getRGB(sourceX, sourceY);
 
+                    // Extract the color components
+                    int r = (pixel >> 16) & 0xFF;
+                    int g = (pixel >> 8) & 0xFF;
+                    int b = pixel & 0xFF;
+                    int a = (pixel >> 24) & 0xFF;
+
+                    // Calculate destination index in the 1D buffer
+                    int dstIndex = (y * imgWidth + x) * imgChannels;
 
                     // Copy pixel data
-                    for (int i = 0; i < imgChannels; i++) {
-                        shiftedBuffer.put(dstIndex + i, image.get(srcIndex + i));
+                    shiftedBuffer.put(dstIndex, (byte) r);
+                    shiftedBuffer.put(dstIndex + 1, (byte) g);
+                    shiftedBuffer.put(dstIndex + 2, (byte) b);
+                    if (imgChannels == 4) {
+                        shiftedBuffer.put(dstIndex + 3, (byte) a);
                     }
                 }
             }
@@ -81,10 +85,9 @@ public class ImageTexture extends Texture {
             ImageTexture instance = new ImageTexture(imgWidth, imgHeight, format, format, GL_UNSIGNED_BYTE, shiftedBuffer);
             texturesInComputeAdd(instance);
 
-            // Free the image memory once loaded
-            stbi_image_free(image);
-
             return instance;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load image: " + resourcePath, e);
         }
     }
 
