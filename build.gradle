@@ -43,17 +43,7 @@ application {
     mainClassName = 'net.bowen.Main'
 }
 
-sourceSets {
-    main {
-        resources {
-            srcDirs "src/main/resources", "src/main/configs"
-        }
-    }
-}
-
 jar {
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-
     manifest {
         attributes "Main-Class": "net.bowen.Main"
     }
@@ -61,4 +51,6 @@ jar {
     from {
         configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
     }
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }
